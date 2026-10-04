@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Kozel</title>
+<style>
+  :root {
+    --felt: #0d4a4c;
+    --felt-dark: #083436;
+    --sky: #3cc3dd;
+    --gold: #f2c230;
+    --card: #fbfaf5;
+    --ink: #1c1c1c;
+    --red: #c8102e;
+    --muted: #9fc9c9;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, var(--felt) 0%, var(--felt-dark) 85%);
+    color: #eaf6f6;
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+  }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; padding: 10px 10px 16px; gap: 8px; }
+
+  /* Header */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #scores { display: flex; gap: 14px; }
+  .score { display: flex; flex-direction: column; line-height: 1.15; }
+  .score span { font-size: 12px; color: var(--muted); }
+  .score b { font-size: 26px; font-variant-numeric: tabular-nums; color: var(--sky); }
+  .score.us b { color: var(--gold); }
+  #trumpBox { display: flex; align-items: center; gap: 8px; }
+  #trumpSuit {
+    width: 46px; height: 58px; border-radius: 6px; background: var(--card);
+    display: grid; place-items: center; font-size: 32px; color: var(--ink);
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+  #trumpSuit.red { color: var(--red); }
+  #trumpInfo { font-size: 12px; line-height: 1.35; color: var(--muted); }
+  #trumpInfo .mult { color: var(--felt-dark); background: var(--gold); border-radius: 4px; padding: 0 5px; font-weight: 700; }
+  .subline { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .subline div { display: flex; gap: 6px; }
+  .subline button { background: none; border: 1px solid var(--muted); color: var(--muted); border-radius: 12px; font-size: 11px; padding: 2px 10px; }
+
+  /* Table */
+  #table { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 300px; }
+  .mid { flex: 1; display: grid; grid-template-columns: 62px 1fr 62px; gap: 6px; }
+  .seat { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 13px; padding: 4px; border-radius: 8px; border: 2px solid transparent; }
+  .seat.turn { border-color: var(--gold); background: rgba(242,194,48,.08); }
+  .seat .name { font-weight: 600; }
+  .seat.hidden { visibility: hidden; }
+  .seat.t0 .name { color: var(--gold); }
+  .seat.t1 .name { color: var(--sky); }
+  .seat .tag { font-size: 10px; color: var(--muted); }
+  .seat .down { font-size: 10px; color: var(--felt-dark); background: var(--muted); border-radius: 3px; padding: 0 4px; }
+  .backs { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 54px; }
+  #seatTop .backs { max-width: none; }
+  .back-mini { width: 10px; height: 14px; border-radius: 2px; background: var(--sky); border: 1px solid #fff4; }
+
+  #center {
+    background: rgba(0,0,0,.18); border-radius: 10px; padding: 8px;
+    display: flex; flex-direction: column; gap: 5px; overflow-y: auto; max-height: 300px;
+  }
+  .play { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 6px; }
+  .play.top { background: rgba(242,194,48,.18); }
+  .play .who { width: 34px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .play .cards { display: flex; gap: 3px; flex-wrap: wrap; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; margin: auto; }
+  .banner { text-align: center; font-weight: 600; color: var(--gold); padding: 4px; }
+
+  /* Cards */
+  .card {
+    background: var(--card); color: var(--ink); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: Georgia, "Times New Roman", serif; font-weight: 700; line-height: 1;
+    box-shadow: 0 1px 2px rgba(0,0,0,.4); user-select: none;
+  }
+  .card.red { color: var(--red); }
+  .card.mini { width: 30px; height: 42px; font-size: 13px; }
+  .card.mini .s { font-size: 14px; }
+  .card.back { background: repeating-linear-gradient(45deg, var(--sky) 0 4px, #2aa9c2 4px 8px); box-shadow: inset 0 0 0 2px var(--card); }
+  .card.trump { box-shadow: 0 0 0 2px var(--gold), 0 1px 2px rgba(0,0,0,.4); }
+
+  #status { min-height: 42px; font-size: 14px; line-height: 1.35; text-align: center; }
+  #status .note { color: var(--muted); font-size: 13px; }
+
+  #hand { display: flex; justify-content: center; gap: 5px; min-height: 92px; align-items: flex-end; }
+  .card.big { width: 52px; height: 76px; font-size: 20px; cursor: pointer; transition: transform .12s; }
+  .card.big .s { font-size: 22px; margin-top: 4px; }
+  .card.big.sel { transform: translateY(-12px); box-shadow: 0 0 0 3px var(--gold), 0 4px 8px rgba(0,0,0,.5); }
+
+  #actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #actions button, .panel button {
+    font: inherit; font-weight: 600; padding: 13px; border-radius: 10px; border: none;
+  }
+  #btnPlay { background: var(--gold); color: var(--felt-dark); }
+  #btnDown { background: transparent; color: #eaf6f6; border: 2px solid var(--muted); }
+  #actions button:disabled { opacity: .35; }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(4,30,31,.82); display: flex; flex-direction: column; padding: 20px; z-index: 5; overflow-y: auto; }
+  #overlay[hidden] { display: none; }
+  .panel { margin: auto; background: var(--felt); border: 2px solid var(--gold); border-radius: 14px; padding: 20px; max-width: 380px; width: 100%; line-height: 1.45; }
+  .panel h2 { margin: 0 0 8px; font-family: Georgia, serif; font-size: 26px; color: var(--gold); }
+  .panel p { margin: 6px 0; }
+  .panel ul { padding-left: 18px; margin: 6px 0; font-size: 14px; }
+  .panel button { width: 100%; margin-top: 12px; background: var(--gold); color: var(--felt-dark); }
+  .panel .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .panel .choices button { margin-top: 4px; font-size: 18px; }
+  .panel .row { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+
+  @media (prefers-reduced-motion: reduce) { .card.big { transition: none; } }
+
+  .panel input { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 2px solid var(--muted);
+    background: var(--felt-dark); color: #eaf6f6; margin-top: 6px; }
+  .panel .code { font-size: 44px; letter-spacing: 8px; font-family: Georgia, serif; color: var(--gold); text-align: center; }
+  .panel .seatrow { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #ffffff22; }
+  .panel .muted, .muted { color: var(--muted); font-size: 13px; }
+  .panel .err { color: #ffb0b0; min-height: 1em; }
+  .panel button.secondary { background: transparent; color: #eaf6f6; border: 2px solid var(--muted); }
+  .panel hr { border: none; border-top: 1px solid #ffffff22; margin: 16px 0; }
+  .play .who { width: 46px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score span { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .seat .name { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div id="scores"></div>
+    <div id="trumpBox"><div id="trumpSuit"></div><div id="trumpInfo"></div></div>
+  </header>
+  <div class="subline"><span id="roomLabel"></span><div><button id="btnLeave">Leave</button><button id="btnRules">Rules</button></div></div>
+
+  <div id="table">
+    <div class="seat" id="seatTop"></div>
+    <div class="mid">
+      <div class="seat" id="seatLeft"></div>
+      <div id="center"></div>
+      <div class="seat" id="seatRight"></div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+  <div id="hand"></div>
+  <div id="actions">
+    <button id="btnPlay" disabled>Play</button>
+    <button id="btnDown" disabled>Put face down</button>
+  </div>
+</div>
+<div id="overlay" hidden><div class="panel" id="panel"></div></div>
+
+<script type="module">
+// ===== ONLINE (Firebase rooms + screen) =====
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getDatabase, ref, set, get, update, push, remove, onValue, onChildAdded, runTransaction }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+// ===== RULES (shared) =====
+const SUITS = ['♣', '♦', '♥', '♠'];
+const RANKS = ['6', '7', '8', '9', 'J', 'Q', 'K', '10', 'A'];   // weakest -> strongest
+const POINTS = { A: 11, '10': 10, K: 4, Q: 3, J: 2 };
+const HAND = 6;
+const mk = (s, r) => ({ s, r, id: RANKS[r] + s });
+const isRed = c => c.s === '♦' || c.s === '♥';
+const isSpecial = c => c.s === '♣' && c.r === 0;           // 6♣
+const cardPts = c => POINTS[RANKS[c.r]] || 0;
+const pts = cs => cs.reduce((a, c) => a + cardPts(c), 0);
+function beats1(c, o, trump) {
+  if (isSpecial(c)) return true;
+  if (c.s === o.s) return c.r > o.r;
+  return c.s === trump;
+}
+function beatsSet(def, att, trump) {
+  if (def.length !== att.length) return false;
+  const go = (d, i) => {
+    if (i === att.length) return true;
+    for (let k = 0; k < d.length; k++) {
+      if (beats1(d[k], att[i], trump) && go(d.slice(0, k).concat(d.slice(k + 1)), i + 1)) return true;
+    }
+    return false;
+  };
+  return go(def, 0);
+}
+function validLead(cs) {
+  if (!cs.length) return false;
+  return cs.every(c => c.s === cs[0].s) || cs.every(c => c.r === cs[0].r);
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// ===== ENGINE START (runs only on the host's phone) =====
+let N = 4, NAMES = [], BOTS = [], G = null, R = null;
+let publish = () => {};          // set by the online layer
+let botTimer = null;
+
+const nxt = p => (p + 1) % N;
+const unitOf = p => (N === 4 ? p % 2 : p);
+const unitCount = () => (N === 4 ? 2 : N);
+const unitName = u => (N === 4 ? `${NAMES[u]} + ${NAMES[u + 2]}` : NAMES[u]);
+const threshold = () => (N === 3 ? 31 : 41);
+const dealMult = () => G.mult + (G.doubled ? 1 : 0) + (G.equalScores ? 1 : 0);
+const maxLead = () => Math.min(...R.active.map(q => G.hands[q].length));
+const canEnd = p => N > 2 && R && R.size > 0 && !R.mustAttack && R.cur === p && R.leader === p;
+
+function penalty(p, wonAny) {
+  if (!wonAny) return 6;
+  if (p === 0) return 8;
+  if (p < threshold()) return 4;
+  return 2;
+}
+
+function newMatch(n, names, bots) {
+  N = n; NAMES = names; BOTS = bots;
+  G = { match: Array(unitCount()).fill(0), mult: 1, dealer: Math.floor(Math.random() * N),
+        phase: 'idle', note: '', result: null };
+  startDeal();
+}
+
+function moveCard(card, where) {
+  const i = G.deck.findIndex(c => c.id === card.id);
+  G.deck.splice(i, 1);
+  if (where === 'top') G.deck.push(card);
+  else G.deck.splice(Math.min(1, G.deck.length), 0, card);
+}
+
+function startDeal() {
+  G.result = null;
+  G.deck = shuffle(SUITS.flatMap(s => RANKS.map((_, r) => mk(s, r))));
+  G.hands = Array.from({ length: N }, () => []);
+  for (let i = 0; i < HAND; i++) for (let k = 1; k <= N; k++) G.hands[(G.dealer + k) % N].push(G.deck.pop());
+  G.won = Array.from({ length: unitCount() }, () => []);
+  G.mode = 'normal'; G.doubled = false; G.faceUp = null;
+  G.equalScores = G.match.every(x => x === G.match[0]) && G.match[0] > 0;
+
+  const mid = G.deck[Math.floor(G.deck.length / 2)];
+  G.trump = mid.s;
+  let note = `${NAMES[G.dealer]} dealt. Trump revealed: ${mid.id}.`;
+  if (mid.r === 8) {
+    G.mode = 'ace'; G.doubled = true; G.faceUp = mid; moveCard(mid, 'top');
+    note += ' An Ace! This deal counts double and trump stays the same all deal.';
+  } else if (mid.r === 0) {
+    G.mode = 'six'; G.doubled = true; G.faceUp = mid; moveCard(mid, 'second');
+    note += ' A 6! This deal counts double. Trump stays until the last card of the deck.';
+  }
+  if (G.equalScores) note += ` Match score is equal (${G.match.join('-')}), so this deal counts double.`;
+  G.note = note;
+  G.phase = 'play';
+  beginRound(nxt(G.dealer));
+}
+
+function beginRound(leader) {
+  const active = [...Array(N).keys()].filter(q => G.hands[q].length > 0);
+  let l = leader;
+  for (let i = 0; i < N && !active.includes(l); i++) l = nxt(l);
+  R = { active, leader: l, cur: l, holder: l, top: [], size: 0, folded: [], table: [], plays: [],
+        mustAttack: false, banner: '' };
+  step();
+}
+
+function takeFromHand(p, cs) {
+  const ids = new Set(cs.map(c => c.id));
+  G.hands[p] = G.hands[p].filter(c => !ids.has(c.id));
+}
+function doLead(p, cs) {
+  takeFromHand(p, cs);
+  R.size = cs.length; R.top = cs; R.holder = p;
+  R.table.push(...cs); R.plays.push({ p, cs, down: false });
+  advance(false);
+}
+function doBeat(p, cs) {
+  takeFromHand(p, cs);
+  R.top = cs; R.holder = p;
+  R.table.push(...cs); R.plays.push({ p, cs, down: false });
+  if (N === 2) {
+    // 2 players: after beating, attack with any number of new cards.
+    if (G.hands[p].length === 0) return finishRound();
+    R.mustAttack = true;
+    return step();
+  }
+  advance(false);
+}
+function doAttack(p, cs) {
+  takeFromHand(p, cs);
+  R.mustAttack = false;
+  R.size = cs.length;
+  R.top = cs; R.holder = p;
+  R.table.push(...cs); R.plays.push({ p, cs, down: false });
+  advance(false);
+}
+function doDown(p, cs) {
+  takeFromHand(p, cs);
+  if (!R.folded.includes(p)) R.folded.push(p);
+  R.table.push(...cs); R.plays.push({ p, cs, down: true });
+  advance(true);
+}
+function doEnd(p) {
+  if (!canEnd(p)) return;
+  finishRound();
+}
+
+function advance(wentDown) {
+  if (N === 2) {
+    R.cur = nxt(R.cur);
+    if (wentDown || G.hands[R.cur].length < R.size) return finishRound();
+    return step();
+  }
+  do { R.cur = nxt(R.cur); } while (!R.active.includes(R.cur));
+  if (R.cur === R.leader) {
+    const someoneShort = R.active.some(q => G.hands[q].length < R.size);
+    if (R.holder === R.leader || someoneShort) return finishRound();
+  }
+  step();
+}
+
+function step() {
+  publish();
+  clearTimeout(botTimer);
+  if (G.phase === 'play' && BOTS[R.cur]) {
+    const p = R.cur;
+    botTimer = setTimeout(() => aiAct(p), 900);
+  }
+}
+
+function finishRound() {
+  G.phase = 'roundEnd';
+  R.banner = `${NAMES[R.holder]} takes the cards: ${pts(R.table)} points`;
+  publish();
+  setTimeout(completeRound, 1800);
+}
+
+function completeRound() {
+  if (G.phase !== 'roundEnd') return;
+  const w = R.holder;
+  G.won[unitOf(w)].push(...R.table);
+  const msg = refill(w);
+  const withCards = [...Array(N).keys()].filter(q => G.hands[q].length > 0);
+  if (withCards.length < 2) {
+    withCards.forEach(q => { G.won[unitOf(q)].push(...G.hands[q]); G.hands[q] = []; });
+    return finishDeal(w);
+  }
+  G.note = msg;
+  G.phase = 'play';
+  beginRound(w);
+}
+
+function refill(first) {
+  let p = first, lastDrawn = null, lastDeck = null;
+  while (G.deck.length && G.hands.some(h => h.length < HAND)) {
+    if (G.hands[p].length < HAND) {
+      const c = G.deck.pop();
+      G.hands[p].push(c);
+      if (G.faceUp && c.id === G.faceUp.id) G.faceUp = null;
+      lastDrawn = { c, p };
+      if (!G.deck.length) lastDeck = { c, p };
+    }
+    p = nxt(p);
+  }
+  let pick = null;
+  if (G.mode === 'normal') pick = lastDrawn;
+  else if (G.mode === 'six') pick = lastDeck;
+  if (pick) {
+    const changed = pick.c.s !== G.trump;
+    G.trump = pick.c.s;
+    return `${NAMES[pick.p]} opened ${pick.c.id}. Trump is ${changed ? 'now' : 'still'} ${pick.c.s}.`;
+  }
+  return '';
+}
+
+function finishDeal(lastWinner) {
+  const units = [...Array(unitCount()).keys()];
+  const p = G.won.map(pts);
+  const best = Math.max(...p);
+  const top = units.filter(u => p[u] === best);
+  const text = [];
+  if (top.length > 1) {
+    G.mult += 1;
+    text.push(`Tie for the most points. Nobody scores. The next deal counts ×${G.mult}.`);
+  } else {
+    const mult = dealMult();
+    text.push(`${unitName(top[0])} won the deal.`);
+    for (const u of units) {
+      if (u === top[0]) continue;
+      const wonAny = G.won[u].length > 0;
+      const base = penalty(p[u], wonAny);
+      const why = !wonAny ? 'took no cards' : p[u] === 0 ? 'humiliated, cards but 0 points'
+                : p[u] < threshold() ? `under ${threshold()} points` : `${threshold()} or more points`;
+      G.match[u] += base * mult;
+      text.push(`${unitName(u)}: ${why}, ${base}${mult > 1 ? ' × ' + mult : ''} = ${base * mult} match points.`);
+    }
+    G.mult = 1;
+  }
+  G.dealer = lastWinner;
+
+  const high = Math.max(...G.match), low = Math.min(...G.match);
+  const earlyEnd = !(high > 24) && high > 12 && low === 0;
+  const over = high > 24 || earlyEnd;
+  let title = 'Deal over';
+  if (over) {
+    const loser = units.find(u => G.match[u] === high);
+    title = `${unitName(loser)} ${N === 4 ? 'are' : 'is'} the kozel!`;
+    if (earlyEnd) text.push(`Ended early: more than 12 points while ${unitName(units.find(u => G.match[u] === 0))} still has 0.`);
+  }
+  G.result = {
+    title,
+    rows: units.map(u => [unitName(u), p[u]]),
+    text,
+    score: units.map(u => [unitName(u), G.match[u]]),
+    next: over ? '' : `${NAMES[lastWinner]} won the last cards and deals next.`,
+  };
+  G.phase = over ? 'matchEnd' : 'dealEnd';
+  publish();
+}
+
+// ---------- Computer players ----------
+function costKey(c) {
+  return c.r + cardPts(c) * 0.6 + (c.s === G.trump ? 12 : 0) + (isSpecial(c) ? 40 : 0);
+}
+function combos(arr, n) {
+  const out = [];
+  const go = (s, cur) => {
+    if (cur.length === n) { out.push(cur.slice()); return; }
+    for (let i = s; i < arr.length; i++) { cur.push(arr[i]); go(i + 1, cur); cur.pop(); }
+  };
+  go(0, []);
+  return out;
+}
+const sumCost = cs => cs.reduce((a, c) => a + costKey(c), 0);
+function bestBeat(h) {
+  const opts = combos(h, R.size).filter(cs => beatsSet(cs, R.top, G.trump));
+  if (!opts.length) return null;
+  opts.sort((a, b) => sumCost(a) - sumCost(b));
+  const best = opts[0];
+  const worth = pts(R.table) >= 10 || sumCost(best) < 20 * R.size || G.deck.length === 0;
+  return worth ? best : null;
+}
+function chooseLead(h) {
+  const limit = maxLead();
+  const byRank = {};
+  h.forEach(c => (byRank[c.r] = byRank[c.r] || []).push(c));
+  for (const r of [8, 7]) if (byRank[r] && byRank[r].length >= 2) return byRank[r].slice(0, limit);
+  const plain = h.filter(c => c.s !== G.trump && !isSpecial(c));
+  const pool = plain.length ? plain : h;
+  return [pool.slice().sort((a, b) => costKey(a) - costKey(b))[0]];
+}
+function aiAct(p) {
+  if (G.phase !== 'play' || R.cur !== p) return;
+  const h = G.hands[p];
+  if (R.mustAttack) return doAttack(p, chooseLead(h));
+  if (R.size === 0) return doLead(p, chooseLead(h));
+  const partnerOnTop = unitOf(R.holder) === unitOf(p);
+  if (canEnd(p)) {
+    const b = partnerOnTop ? null : bestBeat(h);
+    return b ? doBeat(p, b) : doEnd(p);
+  }
+  if (!R.folded.includes(p) && !partnerOnTop) {
+    const b = bestBeat(h);
+    if (b) return doBeat(p, b);
+  }
+  let order;
+  if (partnerOnTop) {
+    const give = c => cardPts(c) - (c.s === G.trump ? 20 : 0) - (isSpecial(c) ? 50 : 0);
+    order = h.slice().sort((a, b) => give(b) - give(a));
+  } else {
+    order = h.slice().sort((a, b) => costKey(a) - costKey(b));
+  }
+  doDown(p, order.slice(0, R.size));
+}
+
+// A move sent by a human player. The host checks it against the rules.
+function applyMove(m) {
+  if (!G || G.phase !== 'play' || R.cur !== m.seat || BOTS[m.seat]) return;
+  const hand = G.hands[m.seat];
+  const ids = Array.isArray(m.cards) ? m.cards : [];
+  const cs = ids.map(id => hand.find(c => c.id === id));
+  if (cs.some(c => !c) || new Set(ids).size !== ids.length) return;
+  const p = m.seat;
+  switch (m.type) {
+    case 'lead':
+      if (R.size === 0 && validLead(cs) && cs.length <= maxLead()) doLead(p, cs);
+      break;
+    case 'attack':
+      if (R.mustAttack && validLead(cs) && cs.length <= maxLead()) doAttack(p, cs);
+      break;
+    case 'beat':
+      if (R.size > 0 && !R.mustAttack && !R.folded.includes(p) && cs.length === R.size
+          && beatsSet(cs, R.top, G.trump)) doBeat(p, cs);
+      break;
+    case 'down':
+      if (R.size > 0 && !R.mustAttack && !canEnd(p) && cs.length === R.size) doDown(p, cs);
+      break;
+    case 'end':
+      doEnd(p);
+      break;
+  }
+}
+
+// Host reloaded the page: pick up where the game left off.
+function restoreEngine(saved) {
+  ({ N, NAMES, BOTS, G, R } = saved);
+  if (G.phase === 'roundEnd') setTimeout(completeRound, 800);
+  else if (G.phase === 'play') step();
+}
+// ===== ENGINE END =====
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCU4yA6qllRzCIs8SxhVd6bPzw3rqA00bA',
+  authDomain: 'kozel-4119e.firebaseapp.com',
+  databaseURL: 'https://kozel-4119e-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'kozel-4119e',
+  storageBucket: 'kozel-4119e.firebasestorage.app',
+  messagingSenderId: '242408901356',
+  appId: '1:242408901356:web:6319985f700e8de1a133c9',
+};
+const db = getDatabase(initializeApp(firebaseConfig));
+
+// ---------- Who am I ----------
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+let myId = store.get('kozelId');
+if (!myId) { myId = Math.random().toString(36).slice(2, 10); store.set('kozelId', myId); }
+let myName = store.get('kozelName') || '';
+
+// ---------- Room state on this phone ----------
+let code = null, meta = null, seats = [], V = null, mySeat = -1, isHost = false;
+let unsubs = [], engineReady = false, pending = false, sel = new Set(), rulesOpen = false, lastKey = '';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const roomRef = path => ref(db, `rooms/${code}${path ? '/' + path : ''}`);
+const shareLink = () => `${location.origin}${location.pathname}?room=${code}`;
+
+function showOverlay(html) { $('panel').innerHTML = html; $('overlay').hidden = false; }
+function hideOverlay() { $('overlay').hidden = true; }
+
+// ---------- Home screen ----------
+function showHome(prefillCode = '', error = '') {
+  showOverlay(`<h2>Kozel</h2>
+    <label class="muted" for="nameIn">Your name</label>
+    <input id="nameIn" maxlength="12" autocomplete="off" value="${esc(myName)}" placeholder="Name">
+    <p class="muted" style="margin-top:14px">Create a room:</p>
+    <div class="choices"><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div>
+    <p class="muted" style="text-align:center;margin:4px 0 0">players</p>
+    <hr>
+    <label class="muted" for="codeIn">Or join a friend's room</label>
+    <input id="codeIn" inputmode="numeric" maxlength="4" placeholder="Room code" value="${esc(prefillCode)}">
+    <button id="joinBtn">Join</button>
+    <p class="err" id="err">${esc(error)}</p>`);
+  const readName = () => {
+    const n = $('nameIn').value.trim();
+    if (!n) { $('err').textContent = 'Please type your name first.'; return false; }
+    myName = n; store.set('kozelName', n); return true;
+  };
+  $('panel').querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
+    if (readName()) createRoom(Number(b.dataset.n)).catch(e => showHome('', 'Could not create room: ' + e.message));
+  });
+  $('joinBtn').onclick = () => {
+    if (!readName()) return;
+    const c = $('codeIn').value.trim();
+    if (!/^\d{4}$/.test(c)) { $('err').textContent = 'Room codes are 4 digits.'; return; }
+    joinRoom(c).catch(e => showHome(c, 'Could not join: ' + e.message));
+  };
+}
+
+async function createRoom(n) {
+  let c;
+  for (let i = 0; i < 10; i++) {
+    c = String(1000 + Math.floor(Math.random() * 9000));
+    if (!(await get(ref(db, `rooms/${c}`))).exists()) break;
+  }
+  await set(ref(db, `rooms/${c}`), {
+    meta: { host: myId, n, status: 'lobby', created: Date.now() },
+    seats: { 0: { id: myId, name: myName } },
+  });
+  enterRoom(c);
+}
+
+async function joinRoom(c) {
+  const snap = await get(ref(db, `rooms/${c}`));
+  if (!snap.exists()) return showHome(c, 'Room not found. Check the code.');
+  const room = snap.val();
+  const list = seatList(room.seats, room.meta.n);
+  if (list.some(s => s && s.id === myId)) return enterRoom(c);       // rejoining
+  if (room.meta.status !== 'lobby') return showHome(c, 'That game has already started.');
+  let joined = false;
+  await runTransaction(ref(db, `rooms/${c}/seats`), cur => {
+    if (cur === null) return null;
+    const arr = seatList(cur, room.meta.n);
+    const free = arr.findIndex(s => !s);
+    if (free < 0) { joined = false; return; }       // full: abort
+    cur[free] = { id: myId, name: myName };
+    joined = true;
+    return cur;
+  });
+  if (!joined) return showHome(c, 'That room is full.');
+  enterRoom(c);
+}
+
+function seatList(raw, n) {
+  return Array.from({ length: n }, (_, i) => (raw && raw[i]) || null);
+}
+
+// ---------- Inside a room ----------
+function enterRoom(c) {
+  leaveListeners();
+  code = c; engineReady = false; V = null; lastKey = '';
+  history.replaceState(null, '', `?room=${c}`);
+  $('roomLabel').textContent = `Room ${c}`;
+  unsubs.push(onValue(roomRef('meta'), s => {
+    meta = s.val();
+    if (!meta) { leaveRoom(); return showHome('', 'The room was closed.'); }
+    isHost = meta.host === myId;
+    renderAll();
+  }));
+  unsubs.push(onValue(roomRef('seats'), s => {
+    seats = seatList(s.val(), meta ? meta.n : 4);
+    mySeat = seats.findIndex(x => x && x.id === myId);
+    renderAll();
+  }));
+  unsubs.push(onValue(roomRef('game'), s => {
+    const raw = s.val();
+    V = raw ? JSON.parse(raw) : null;
+    pending = false;
+    if (V && isHost && !engineReady) { restoreEngine(JSON.parse(raw)); startHosting(); }
+    const key = V && V.R ? `${V.R.plays.length}-${V.R.cur}-${V.R.mustAttack}-${V.G.phase}` : '';
+    if (key !== lastKey) { sel.clear(); lastKey = key; }
+    renderAll();
+  }));
+}
+
+function leaveListeners() { unsubs.forEach(u => u()); unsubs = []; }
+function leaveRoom() {
+  leaveListeners();
+  code = null; meta = null; V = null; engineReady = false; mySeat = -1;
+  history.replaceState(null, '', location.pathname);
+}
+
+// Host: connect the engine to Firebase and listen for players' moves.
+function startHosting() {
+  engineReady = true;
+  publish = () => set(roomRef('game'), JSON.stringify({ N, NAMES, BOTS, G, R }));
+  unsubs.push(onChildAdded(roomRef('moves'), snap => {
+    const m = snap.val();
+    remove(snap.ref);
+    const owner = seats[m.seat];
+    if (owner && owner.id === m.by) applyMove(m);
+  }));
+}
+
+async function hostStartGame() {
+  const n = meta.n;
+  const names = [], bots = [], seatUpdate = {};
+  for (let i = 0; i < n; i++) {
+    if (seats[i] && !seats[i].bot) { names.push(seats[i].name); bots.push(false); }
+    else {
+      const name = `Bot ${'ABCD'[i]}`;
+      names.push(name); bots.push(true);
+      seatUpdate[i] = { bot: true, name };
+    }
+  }
+  if (Object.keys(seatUpdate).length) await update(roomRef('seats'), seatUpdate);
+  await update(roomRef('meta'), { status: 'playing' });
+  startHosting();
+  newMatch(n, names, bots);
+}
+
+function sendMove(type) {
+  if (pending) return;
+  pending = true;
+  push(roomRef('moves'), { seat: mySeat, by: myId, type, cards: [...sel] })
+    .catch(() => { pending = false; });
+  sel.clear();
+  renderGame();
+}
+
+// ---------- Rendering ----------
+function renderAll() {
+  if (!code || !meta) return;
+  if (meta.status === 'lobby' || !V) return renderLobby();
+  renderGame();
+  if (rulesOpen) return;
+  const ph = V.G.phase;
+  if (ph === 'dealEnd' || ph === 'matchEnd') renderResult();
+  else hideOverlay();
+}
+
+function renderLobby() {
+  const n = meta.n;
+  const rows = seatList(seats, n).map((s, i) => {
+    const team = n === 4 ? `<span class="muted">Team ${i % 2 + 1}</span>` : '';
+    const who = s ? esc(s.name) + (s.id === myId ? ' (you)' : '') : '<span class="muted">Empty (computer will play)</span>';
+    return `<div class="seatrow"><span>${i + 1}. ${who}</span>${team}</div>`;
+  }).join('');
+  const starting = meta.status !== 'lobby';
+  showOverlay(`<h2>Room</h2><div class="code">${esc(code)}</div>
+    <p class="muted">${n} players. Send this link to your friends:</p>
+    <input readonly id="linkIn" value="${esc(shareLink())}">
+    <button id="shareBtn">Share link</button>
+    <div style="margin-top:14px">${rows}</div>
+    ${n === 4 ? '<p class="muted">Players 1 and 3 are a team against 2 and 4.</p>' : ''}
+    ${starting ? '<p>Starting…</p>'
+      : isHost ? '<button id="startBtn">Start game</button>'
+      : '<p class="muted">Waiting for the host to start the game.</p>'}
+    <button class="secondary" id="leaveBtn">Leave room</button>`);
+  $('shareBtn').onclick = async () => {
+    const url = shareLink();
+    try {
+      if (navigator.share) await navigator.share({ title: 'Kozel', text: `Join my Kozel game, room ${code}`, url });
+      else { await navigator.clipboard.writeText(url); $('shareBtn').textContent = 'Link copied'; }
+    } catch { $('linkIn').select(); }
+  };
+  if ($('startBtn')) $('startBtn').onclick = () => { $('startBtn').disabled = true; hostStartGame(); };
+  $('leaveBtn').onclick = () => { leaveRoom(); showHome(); };
+}
+
+function renderResult() {
+  const r = V.G.result;
+  if (!r) return;
+  const rows = r.rows.map(([n, p]) => `<div class="row"><span>${esc(n)}</span><b>${p}</b></div>`).join('');
+  const score = r.score.map(([n, s]) => `${esc(n)} ${s}`).join(', ');
+  const over = V.G.phase === 'matchEnd';
+  const hostName = seats[0] ? esc(seats[0].name) : 'the host';
+  showOverlay(`<h2>${esc(r.title)}</h2>${rows}${r.text.map(t => `<p>${esc(t)}</p>`).join('')}
+    <p>${over ? 'Final match score' : 'Match score'}: ${score}.</p>
+    ${r.next ? `<p>${esc(r.next)}</p>` : ''}
+    ${isHost ? `<button id="goBtn">${over ? 'Play again' : 'Next deal'}</button>`
+             : `<p class="muted">Waiting for ${hostName} to continue.</p>`}
+    ${over ? '<button class="secondary" id="leaveBtn">Leave room</button>' : ''}`);
+  if ($('goBtn')) $('goBtn').onclick = () => {
+    $('goBtn').disabled = true;
+    if (V.G.phase === 'dealEnd') startDeal(); else newMatch(N, NAMES, BOTS);
+  };
+  if ($('leaveBtn')) $('leaveBtn').onclick = () => { leaveRoom(); showHome(); };
+}
+
+const SEATS = { 2: { 1: 'Top' }, 3: { 1: 'Left', 2: 'Right' }, 4: { 1: 'Left', 2: 'Top', 3: 'Right' } };
+
+function cardHTML(c, trump, cls = 'mini', faceDown = false) {
+  if (faceDown) return `<div class="card ${cls} back"></div>`;
+  return `<div class="card ${cls}${isRed(c) ? ' red' : ''}${c.s === trump ? ' trump' : ''}" data-id="${c.id}"><span>${RANKS[c.r]}</span><span class="s">${c.s}</span></div>`;
+}
+
+function renderGame() {
+  if (!V || mySeat < 0) return;
+  const { N: n, NAMES: names, G: g, R: r } = V;
+  const me = mySeat;
+  const uOf = p => (n === 4 ? p % 2 : p);
+  const uCount = n === 4 ? 2 : n;
+  const uName = u => (n === 4 ? `${names[u]} + ${names[u + 2]}` : names[u]);
+  const vMaxLead = () => Math.min(...r.active.map(q => g.hands[q].length));
+  const vCanEnd = p => n > 2 && r.size > 0 && !r.mustAttack && r.cur === p && r.leader === p;
+
+  $('scores').innerHTML = [...Array(uCount).keys()].map(u =>
+    `<div class="score${u === uOf(me) ? ' us' : ''}"><span>${esc(uName(u))}</span><b>${g.match[u]}</b></div>`).join('');
+
+  const ts = $('trumpSuit');
+  ts.textContent = g.trump;
+  ts.className = isRed({ s: g.trump }) ? 'red' : '';
+  const mult = g.mult + (g.doubled ? 1 : 0) + (g.equalScores ? 1 : 0);
+  const modeText = g.mode === 'ace' ? 'Fixed (Ace)' : g.mode === 'six' ? 'Until last card' : 'Changes each refill';
+  $('trumpInfo').innerHTML = `Trump<br>Deck: ${g.deck.length}<br>${modeText}` +
+    (g.faceUp ? `<br>${g.faceUp.id} face up` : '') +
+    (mult > 1 ? `<br><span class="mult">×${mult}</span>` : '');
+
+  for (const pos of ['Top', 'Left', 'Right']) { const el = $('seat' + pos); el.className = 'seat hidden'; el.innerHTML = ''; }
+  for (let rel = 1; rel < n; rel++) {
+    const p = (me + rel) % n;
+    const el = $('seat' + SEATS[n][rel]);
+    const partner = n === 4 && rel === 2;
+    el.className = `seat ${partner ? 't0' : 't1'}${r.cur === p && g.phase === 'play' ? ' turn' : ''}`;
+    el.innerHTML = `<div class="name">${esc(names[p])}</div>
+      <div class="tag">${partner ? 'Partner' : 'Opponent'}${g.dealer === p ? ', dealer' : ''}</div>
+      <div class="backs">${'<div class="back-mini"></div>'.repeat(g.hands[p].length)}</div>
+      ${n > 2 && r.folded.includes(p) ? '<div class="down">Face down</div>' : ''}`;
+  }
+
+  const c = $('center');
+  if (!r.plays.length) {
+    c.innerHTML = `<div class="empty">${r.cur === me ? 'Your lead' : esc(names[r.cur]) + ' leads'}</div>`;
+  } else {
+    const topIdx = r.plays.map(x => !x.down).lastIndexOf(true);
+    c.innerHTML = r.plays.map((pl, i) => `<div class="play${i === topIdx ? ' top' : ''}">
+        <span class="who">${pl.p === me ? 'You' : esc(names[pl.p])}</span>
+        <div class="cards">${pl.cs.map(x => cardHTML(x, g.trump, 'mini', pl.down)).join('')}</div></div>`).join('') +
+      (g.phase === 'roundEnd' && r.banner ? `<div class="banner">${esc(r.banner)}</div>` : '');
+    c.scrollTop = c.scrollHeight;
+  }
+
+  const myTurn = g.phase === 'play' && r.cur === me && !pending;
+  let turn = '';
+  if (g.phase === 'play') {
+    if (r.cur === me) {
+      const topTxt = `${esc(names[r.holder])}'s ${r.top.map(x => x.id).join(' ')}`;
+      if (r.size === 0) turn = 'Your lead. Pick cards of one suit or one rank.';
+      else if (r.mustAttack) turn = 'You beat them. Now play cards on your opponent: one or more, of one suit or one rank.';
+      else if (vCanEnd(me)) turn = `Beat ${topTxt} or end the round (${esc(names[r.holder])} takes the cards).`;
+      else if (r.folded.includes(me)) turn = `You went face down. Put ${r.size} more face down.`;
+      else turn = `Beat ${topTxt} or put ${r.size} face down.`;
+    } else turn = `${esc(names[r.cur])}'s turn`;
+  }
+  $('status').innerHTML = `<div>${turn}</div>${g.note ? `<div class="note">${esc(g.note)}</div>` : ''}`;
+
+  const order = s => (s === g.trump ? 9 : SUITS.indexOf(s));
+  const hand = g.hands[me].slice().sort((a, b) => order(a.s) - order(b.s) || a.r - b.r);
+  $('hand').innerHTML = hand.map(x => cardHTML(x, g.trump, 'big' + (sel.has(x.id) ? ' sel' : ''))).join('');
+  $('hand').querySelectorAll('.card').forEach(el => el.onclick = () => {
+    if (!myTurn) return;
+    const id = el.dataset.id;
+    sel.has(id) ? sel.delete(id) : sel.add(id);
+    renderGame();
+  });
+
+  const mine = g.hands[me].filter(x => sel.has(x.id));
+  const bp = $('btnPlay'), bd = $('btnDown');
+  if (myTurn && (r.size === 0 || r.mustAttack)) {
+    bp.textContent = 'Play'; bp.disabled = !validLead(mine) || mine.length > vMaxLead();
+    bd.textContent = 'Put face down'; bd.disabled = true;
+    bp.onclick = () => sendMove(r.size === 0 ? 'lead' : 'attack');
+  } else if (myTurn && vCanEnd(me)) {
+    bp.textContent = 'Beat';
+    bp.disabled = !(mine.length === r.size && beatsSet(mine, r.top, g.trump));
+    bd.textContent = 'End round'; bd.disabled = false;
+    bp.onclick = () => sendMove('beat');
+    bd.onclick = () => sendMove('end');
+  } else {
+    bp.textContent = 'Beat';
+    bp.disabled = !(myTurn && !r.folded.includes(me) && mine.length === r.size && beatsSet(mine, r.top, g.trump));
+    bd.textContent = 'Put face down';
+    bd.disabled = !(myTurn && mine.length === r.size);
+    bp.onclick = () => sendMove('beat');
+    bd.onclick = () => sendMove('down');
+  }
+}
+
+function rulesHTML(n) {
+  const thr = n === 3 ? 31 : 41;
+  const table = n === 4 ? '<li>Teams: players 1 and 3 against 2 and 4. Play goes clockwise.</li>'
+    : n === 3 ? '<li>Everyone plays alone. Play goes clockwise.</li>' : '<li>One against one.</li>';
+  const flow = n === 2
+    ? "<li>Your opponent beats your cards or puts the same number face down. If they beat, they then play new cards on you: any number, of one suit or one rank. The round ends when someone goes face down, and the player whose cards weren't beaten takes all the cards.</li>"
+    : '<li>Others beat with higher cards of the same suit or trumps, or put the same number face down. Once face down, you stay face down for that round.</li><li>When play comes back to the starter, everyone has played the same number of cards. The starter can beat again or end the round, and whoever is on top takes all the cards.</li>';
+  return `<ul>${table}
+    <li>Lead one card, or several of one suit, or several of one rank.</li>${flow}
+    <li>6♣ beats any card, but once played it's a normal 6♣.</li>
+    <li>Card ranks: 6 7 8 9 J Q K 10 A. Points: A 11, 10 10, K 4, Q 3, J 2.</li>
+    <li>${n === 3 ? 'Both players who lose get' : 'The losing side gets'} 2 (${thr}+ points), 4 (under ${thr}), 6 (no cards), 8 (cards but 0 points). A tie for the most points makes the next deal count more.</li>
+    <li>First trump an Ace or a 6: the deal counts double.</li>
+    <li>Equal match score (like 2-2 or 4-4): the next deal counts double. All doubling rules stack.</li>
+    <li>Over 24 match points loses. The match also ends early if someone has more than 12 while another side still has 0.</li></ul>`;
+}
+
+$('btnRules').onclick = () => {
+  rulesOpen = true;
+  showOverlay(`<h2>Rules</h2>${rulesHTML(meta ? meta.n : 4)}<button id="closeRules">Back to game</button>`);
+  $('closeRules').onclick = () => { rulesOpen = false; hideOverlay(); renderAll(); };
+};
+$('btnLeave').onclick = () => {
+  if (!confirm(isHost ? 'Leave? You are the host, so the game stops for everyone.' : 'Leave this game?')) return;
+  leaveRoom(); showHome();
+};
+
+// ---------- Start ----------
+const urlRoom = new URLSearchParams(location.search).get('room');
+if (urlRoom && myName) joinRoom(urlRoom).catch(e => showHome(urlRoom, 'Could not join: ' + e.message));
+else showHome(urlRoom || '');
+
+</script>
+</body>
+</html>
