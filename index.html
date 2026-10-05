@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="kk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Kozel</title>
+<meta name="theme-color" content="#083436">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kozel">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<link rel="manifest" href="manifest.json">
 <style>
   :root {
     --felt: #0d4a4c;
@@ -113,7 +121,7 @@
   .panel .row { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
 
   @media (prefers-reduced-motion: reduce) { .card.big { transition: none; } }
-
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
   .panel input { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 2px solid var(--muted);
     background: var(--felt-dark); color: #eaf6f6; margin-top: 6px; }
   .panel .code { font-size: 44px; letter-spacing: 8px; font-family: Georgia, serif; color: var(--gold); text-align: center; }
@@ -125,6 +133,132 @@
   .play .who { width: 46px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .score span { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .seat .name { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Highlights */
+  .seat { transition: border-color .25s, background .25s; }
+  .seat.partner { border-color: rgba(242,194,48,.35); border-style: dashed; }
+  .seat, #meBar { position: relative; }
+  .seat.turn, #meBar.turn { border-color: var(--gold); border-style: solid; background: rgba(242,194,48,.08); }
+  /* Glow: a fixed shadow that only fades in and out (cheap for the phone to draw) */
+  .seat.turn::after, #meBar.turn::after { content: ''; position: absolute; inset: -2px; border-radius: inherit;
+    box-shadow: 0 0 16px 3px rgba(242,194,48,.55); opacity: 0; pointer-events: none;
+    animation: glow 1.4s ease-in-out infinite; will-change: opacity; }
+  @keyframes glow { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+  .ontop { font-size: 10px; font-weight: 700; color: var(--felt-dark); background: var(--gold); border-radius: 3px; padding: 1px 5px; }
+  .timer { width: 100%; height: 4px; background: #ffffff22; border-radius: 2px; overflow: hidden; }
+  .timer i { display: block; height: 100%; background: var(--gold); transform-origin: left; animation: countdown linear forwards; }
+  @keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+  #meBar { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 5px 10px;
+    border-radius: 10px; border: 2px solid transparent; font-size: 13px; }
+  #meBar .name { font-weight: 600; }
+  #meBar .name.t0 { color: var(--gold); }
+  #meBar .tag { color: var(--muted); font-size: 11px; }
+  #meBar .down { font-size: 10px; color: var(--felt-dark); background: var(--muted); border-radius: 3px; padding: 1px 5px; }
+  #meBar .pill { background: var(--gold); color: var(--felt-dark); font-weight: 700; border-radius: 12px; padding: 2px 10px;
+    animation: pulse 1s ease-in-out infinite; }
+  #meBar .timer { width: 70px; }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  #trumpBox { perspective: 400px; }
+  @media (prefers-reduced-motion: reduce) {
+    .seat.turn::after, #meBar.turn::after, #meBar .pill, .timer i { animation: none; }
+  }
+
+  /* Reactions */
+  #actions { grid-template-columns: 1fr 1fr 48px 48px; }
+  #btnReact, #btnChat { background: transparent; border: 2px solid var(--muted); font-size: 22px; padding: 8px 0; position: relative; }
+  #picker { position: fixed; right: 10px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 15;
+    background: var(--felt); border: 2px solid var(--gold); border-radius: 14px; padding: 10px;
+    display: grid; grid-template-columns: repeat(4, 48px); gap: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
+  #picker[hidden] { display: none; }
+  #picker .emo { font-size: 28px; background: rgba(255,255,255,.06); border: none; border-radius: 10px; height: 48px; }
+  #picker .signbtn { grid-column: 1 / -1; font: 700 15px Georgia, serif; color: var(--ink); background: var(--card);
+    border: 3px solid var(--ink); border-radius: 6px; padding: 8px; transform: rotate(-2deg); margin-top: 4px; }
+  #picker .signbtn:nth-of-type(even) { transform: rotate(1.5deg); }
+  .react { position: fixed; z-index: 30; pointer-events: none; font-size: 44px; line-height: 1;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
+  .react.sign { font: 700 20px Georgia, serif; color: var(--ink); background: var(--card); border: 4px solid var(--ink);
+    border-radius: 8px; padding: 10px 14px; white-space: nowrap; box-shadow: 0 0 0 3px var(--gold), 0 8px 20px rgba(0,0,0,.6);
+    filter: none; }
+
+  /* Deck in the middle */
+  .midcol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  #deckZone { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 66px; }
+  .deckwrap { position: relative; width: 78px; height: 58px; }
+  .trumpslot { position: absolute; left: 0; top: 14px; width: 44px; height: 30px; border-radius: 5px;
+    background: var(--card); color: var(--ink); display: grid; place-items: center; font-size: 22px;
+    box-shadow: 0 0 0 2px var(--gold), 0 2px 4px rgba(0,0,0,.4); }
+  .trumpslot.red { color: var(--red); }
+  .stack { position: absolute; left: 38px; top: 8px; width: 30px; height: 42px; }
+  .stack .card { position: absolute; inset: 0; }
+  .stack.empty { border: 2px dashed #ffffff33; border-radius: 6px; }
+  .stack .faceup { box-shadow: 0 0 0 2px var(--gold); }
+  .stack .peek { transform: translate(5px, 6px) rotate(8deg); }
+  .deckinfo { display: flex; flex-direction: column; font-size: 11px; color: var(--muted); line-height: 1.25; }
+  .deckinfo b { font-size: 18px; color: #eaf6f6; }
+  .deckinfo .tl { color: var(--gold); }
+  #center { flex: 1; }
+  .card.reveal { box-shadow: 0 0 0 3px var(--gold), 0 0 24px 6px rgba(242,194,48,.6); }
+
+  #trumpSuit { display: none; }
+  #trumpInfo { text-align: right; }
+  #trumpInfo b { font-size: 15px; color: #eaf6f6; }
+  #trumpInfo b.red { color: #ff8a8a; }
+  .mid > .seat { align-self: start; }
+
+  /* Pile of played cards */
+  #center { position: relative; overflow: hidden; min-height: 220px; display: block; padding: 0; }
+  .pile { position: absolute; inset: 0; }
+  .grp { position: absolute; left: 50%; top: 50%; display: flex; transform-origin: center; }
+  .grp .card + .card { margin-left: var(--ov, -18px); }
+  .grp.top .card { box-shadow: 0 0 0 2px var(--gold), 0 2px 6px rgba(0,0,0,.5); }
+  .grp .who { position: absolute; left: 50%; top: -18px; transform: translateX(-50%); white-space: nowrap;
+    font-size: 11px; background: rgba(4,30,31,.85); color: #eaf6f6; border-radius: 8px; padding: 1px 7px; }
+  .grp.top .who { background: var(--gold); color: var(--felt-dark); font-weight: 700; }
+  .card.mid { width: 42px; height: 60px; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,.45); }
+  .card.mid .s { font-size: 18px; margin-top: 2px; }
+  #center .empty { position: absolute; inset: 0; display: grid; place-items: center; }
+  #center .banner { position: absolute; left: 0; right: 0; bottom: 8px; z-index: 50;
+    text-shadow: 0 2px 6px rgba(0,0,0,.8); }
+  .multbadge { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+  .multbadge b { font: 700 22px Georgia, serif; color: var(--felt-dark); background: var(--gold); border-radius: 8px;
+    padding: 2px 8px; box-shadow: 0 0 12px rgba(242,194,48,.5); }
+  .multbadge span { font-size: 10px; color: var(--gold); margin-top: 2px; max-width: 70px; text-align: center; }
+  .grp.fd { opacity: .88; }
+  /* In a spread, show rank and suit in the corner so overlapped cards stay readable */
+  .grp.multi .card.mid:not(.back) { justify-content: flex-start; align-items: flex-start; padding: 4px 0 0 5px; }
+  .grp.multi .card.mid:not(.back) .s { margin-top: 1px; font-size: 16px; }
+
+  /* Language switch */
+  .langs { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 4px; }
+  .panel .langs button { width: auto; margin: 0; padding: 6px 12px; font-size: 13px; background: transparent;
+    color: var(--muted); border: 1px solid var(--muted); border-radius: 14px; }
+  .panel .langs button.on { background: var(--gold); color: var(--felt-dark); border-color: var(--gold); }
+  .trumpslot.unknown { color: var(--muted); background: #1d5b5d; box-shadow: 0 0 0 2px #ffffff33; }
+
+  /* Chat */
+  #chatBadge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px;
+    background: #e5484d; color: #fff; font: 700 11px/20px -apple-system, sans-serif; padding: 0 5px; }
+  #chatBadge[hidden] { display: none; }
+  #chat { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 45;
+    max-width: 460px; margin: 0 auto; height: min(55vh, 420px); display: flex; flex-direction: column;
+    background: var(--felt); border: 2px solid var(--gold); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  #chat[hidden] { display: none; }
+  .chathead { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #ffffff22; }
+  .chathead b { font-family: Georgia, serif; color: var(--gold); font-size: 18px; }
+  .chathead button { background: none; border: none; color: var(--muted); font-size: 20px; padding: 2px 6px; }
+  #chatList { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { align-self: flex-start; max-width: 85%; background: rgba(255,255,255,.08); border-radius: 12px 12px 12px 4px;
+    padding: 6px 10px; display: flex; flex-direction: column; font-size: 14px; line-height: 1.35; word-break: break-word; }
+  .msg b { font-size: 11px; color: var(--sky); }
+  .msg.mine { align-self: flex-end; background: rgba(242,194,48,.2); border-radius: 12px 12px 4px 12px; }
+  .msg.mine b { color: var(--gold); }
+  .chatin { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #ffffff22; }
+  .chatin input { flex: 1; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--muted);
+    background: var(--felt-dark); color: #eaf6f6; min-width: 0; }
+  .chatin button { width: 48px; border: none; border-radius: 10px; background: var(--gold); color: var(--felt-dark); font-size: 20px; }
+  .react.speech { font: 600 14px -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--card);
+    border-radius: 14px; padding: 8px 12px; max-width: 220px; white-space: normal; line-height: 1.3; filter: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 </style>
 </head>
 <body>
@@ -133,31 +267,223 @@
     <div id="scores"></div>
     <div id="trumpBox"><div id="trumpSuit"></div><div id="trumpInfo"></div></div>
   </header>
-  <div class="subline"><span id="roomLabel"></span><div><button id="btnLeave">Leave</button><button id="btnRules">Rules</button></div></div>
+  <div class="subline"><span id="roomLabel"></span><div><button id="btnLang">ҚАЗ</button><button id="btnSound">Sound on</button><button id="btnLeave">Leave</button><button id="btnRules">Rules</button></div></div>
 
   <div id="table">
     <div class="seat" id="seatTop"></div>
     <div class="mid">
       <div class="seat" id="seatLeft"></div>
-      <div id="center"></div>
+      <div class="midcol"><div id="deckZone"></div><div id="center"></div></div>
       <div class="seat" id="seatRight"></div>
     </div>
   </div>
 
   <div id="status"></div>
+  <div id="meBar"></div>
   <div id="hand"></div>
   <div id="actions">
     <button id="btnPlay" disabled>Play</button>
     <button id="btnDown" disabled>Put face down</button>
+    <button id="btnReact" aria-label="Send a reaction">😄</button>
+    <button id="btnChat" aria-label="Chat">💬<span id="chatBadge" hidden></span></button>
+  </div>
+  <div id="picker" hidden></div>
+  <div id="chat" hidden>
+    <div class="chathead"><b id="chatTitle">Чат</b><button id="chatClose" aria-label="Close">✕</button></div>
+    <div id="chatList"></div>
+    <div class="chatin"><input id="chatIn" maxlength="200" autocomplete="off" enterkeyhint="send"><button id="chatSend">➤</button></div>
   </div>
 </div>
 <div id="overlay" hidden><div class="panel" id="panel"></div></div>
-
 <script type="module">
 // ===== ONLINE (Firebase rooms + screen) =====
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, set, get, update, push, remove, onValue, onChildAdded, runTransaction }
+import { getDatabase, ref, set, get, update, push, remove, onValue, onChildAdded, runTransaction, query, limitToLast }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+// ===== LANGUAGES (Kazakh is the default) =====
+const LANGS = { kk: 'ҚАЗ', ru: 'РУС', en: 'ENG' };
+const TEXT = {
+  kk: {
+    chat: 'Чат', chatPh: 'Хабарлама жаз…', send: 'Жіберу', noMsgs: 'Әзірге хабарлама жоқ.', close: 'Жабу',
+    title: 'Козел', yourName: 'Атың', namePh: 'Атың', createRoom: 'Бөлме ашу:', players: 'ойыншы',
+    orJoin: 'Немесе досыңның бөлмесіне кір', codePh: 'Бөлме коды', join: 'Кіру',
+    errName: 'Алдымен атыңды жаз.', errCode: 'Бөлме коды 4 саннан тұрады.', errCreate: 'Бөлме ашылмады: ',
+    errJoin: 'Кіру мүмкін болмады: ', errNotFound: 'Бөлме табылмады. Кодты тексер.',
+    errStarted: 'Бұл ойын басталып кетті.', errFull: 'Бөлме толы.', errClosed: 'Бөлме жабылды.',
+    preview: 'Алдын ала көру: тек компьютермен ойнайсың. Достармен ойнау үшін GitHub сілтемесін аш.',
+    room: 'Бөлме', roomN: 'Бөлме {c}', lobbyInfo: '{n} ойыншы. Бұл сілтемені достарыңа жібер:',
+    share: 'Сілтемені бөлісу', copied: 'Сілтеме көшірілді', shareText: 'Козел ойынына кел, бөлме {c}',
+    team: 'Команда {n}', you: '(сен)', emptySeat: 'Бос (компьютер ойнайды)',
+    teamsInfo: '1 және 3 ойыншылар 2 және 4-ке қарсы бір командада.',
+    starting: 'Басталуда…', start: 'Ойынды бастау', waitHost: 'Бөлме иесінің ойынды бастауын күтудеміз.',
+    leaveRoom: 'Бөлмеден шығу', leave: 'Шығу', rules: 'Ережелер', back: 'Ойынға оралу',
+    soundOn: 'Дыбыс қосулы', soundOff: 'Дыбыс өшірулі',
+    confirmHost: 'Шығасың ба? Сен бөлме иесісің, ойын бәріне тоқтайды.', confirmLeave: 'Ойыннан шығасың ба?',
+    bot: 'Бот', youShort: 'Сен',
+    trump: 'Көзір {s}', modeNormal: 'Әр толтырудан кейін ауысады', modeAce: 'Тұрақты (тұз)',
+    modeSix: 'Соңғы картаға дейін', faceUp: '{c} ашық', inDeck: 'дестеде', deckEmpty: 'деста бос',
+    whyTie: 'тең', whyTies: 'тең ×{n}', whyAce: 'тұзды тарату', whySix: 'алтылықты тарату', whyEqual: 'есеп тең',
+    partner: 'Серіктес', opponent: 'Қарсылас', dealerTag: 'таратушы', dealer: 'Таратушы',
+    onTop: 'Үстінде', faceDown: 'Жабық', yourTurn: 'Сенің кезегің',
+    yourLead: 'Сен бастайсың', leads: '{name} бастайды', turnOf: '{name} жүреді',
+    stLead: 'Бір түсті немесе бір мәнді карталарды таңдап, жүр.',
+    stAttack: 'Сен ұрдың. Енді қарсыласқа жүр: бір немесе бірнеше карта, бір түсті не бір мәнді.',
+    stEnd: 'Ұр: {cards} ({name}), немесе айналымды аяқта, сонда карталарды {name} алады.',
+    stFolded: 'Сен жабық тастадың. Тағы {n} карта жабық таста.',
+    stBeat: 'Ұр: {cards} ({name}), немесе {n} карта жабық таста.',
+    play: 'Жүру', beat: 'Ұру', down: 'Жабық тастау', end: 'Аяқтау',
+    takes: 'Карталарды {name} алады', youTake: 'Карталарды сен аласың',
+    dealt: '{name} таратты. Көзір: {card}.',
+    aceDeal: 'Тұз! Бұл тарату екі есе есептеледі, көзір соңына дейін өзгермейді.',
+    sixDeal: 'Алтылық! Тарату екі есе. Көзір дестенің соңғы картасына дейін өзгермейді.',
+    equalDeal: 'Есеп тең ({score}), сондықтан тарату екі есе.',
+    openedNew: '{name} {card} ашты. Енді көзір {suit}.', openedSame: '{name} {card} ашты. Көзір әлі де {suit}.',
+    dealOver: 'Тарату аяқталды', kozel: '{u} козел болды!', kozelTeam: '{u} козел болды!',
+    tie: 'Ұпай тең. Ешкім ұпай алмайды. Келесі тарату ×{m}.',
+    wonDeal: '{u} таратуды ұтты.', wonDealTeam: '{u} таратуды ұтты.',
+    why_none: 'бірде-бір карта алмады', why_humiliated: 'масқара: карта бар, бірақ 0 ұпай',
+    why_under: '{t} ұпайдан аз', why_over: '{t} не одан көп ұпай',
+    early: 'Ойын ертерек аяқталды: 12-ден көп ұпай, ал {u} әлі 0.',
+    score: 'Есеп', finalScore: 'Қорытынды есеп', nextDealer: 'Соңғы карталарды {name} алды, келесі таратушы да сол.',
+    nextDeal: 'Келесі тарату', again: 'Тағы ойнау', waitFor: '{name} жалғастыруын күтудеміз.',
+    r_team4: 'Командалар: 1 және 3 ойыншылар 2 және 4-ке қарсы. Ойын сағат тілі бойынша жүреді.',
+    r_team3: 'Әркім өзі үшін ойнайды. Ойын сағат тілі бойынша жүреді.',
+    r_team2: 'Бірге-бір.',
+    r_lead: 'Бір карта, немесе бір түсті не бір мәнді бірнеше картамен жүруге болады.',
+    r_flow2: 'Қарсылас картаңды ұрады немесе сонша картаны жабық тастайды. Егер ұрса, ол саған жаңа карталармен жүреді: кез келген санмен, бір түсті не бір мәнді. Біреу жабық тастағанда айналым бітеді, ал ұрылмаған карта иесі барлық карталарды алады.',
+    r_flow: 'Қалғандары сол түстің үлкен картасымен немесе көзірмен ұрады, не сонша картаны жабық тастайды. Бір рет жабық тастасаң, сол айналым соңына дейін жабық тастайсың.',
+    r_flow3: 'Жүріс бастаған ойыншыға қайта келгенде, бәрі бірдей карта салған болады. Бастаушы тағы ұра алады немесе айналымды аяқтайды, ал үстінде тұрған ойыншы барлық карталарды алады.',
+    r_six: '6♣ кез келген картаны ұрады, бірақ салынғаннан кейін кәдімгі 6♣ болады.',
+    r_rank: 'Карта реті: 6 7 8 9 J Q K 10 A. Ұпай: A 11, 10 10, K 4, Q 3, J 2.',
+    r_pen3: 'Ұтылған екі ойыншы алады', r_pen: 'Ұтылған жақ алады',
+    r_pen2: '2 ({t}+ ұпай), 4 ({t}-ден аз), 6 (карта жоқ), 8 (карта бар, 0 ұпай). Ұпай тең болса, келесі тарату көбірек есептеледі.',
+    r_double: 'Алғашқы көзір тұз не 6 болса, тарату екі есе.',
+    r_equal: 'Есеп тең болса (2-2, 4-4 сияқты), келесі тарату екі есе. Бұлардың бәрі бір-біріне қосылады.',
+    r_end: '24-тен көп ұпай жинаған жеңіледі. Біреуде 12-ден көп, ал басқа жақта әлі 0 болса, ойын ертерек бітеді.',
+  },
+  ru: {
+    chat: 'Чат', chatPh: 'Написать сообщение…', send: 'Отправить', noMsgs: 'Пока нет сообщений.', close: 'Закрыть',
+    title: 'Козёл', yourName: 'Твоё имя', namePh: 'Имя', createRoom: 'Создать комнату:', players: 'игрока',
+    orJoin: 'Или войти в комнату друга', codePh: 'Код комнаты', join: 'Войти',
+    errName: 'Сначала введи имя.', errCode: 'Код комнаты — 4 цифры.', errCreate: 'Не удалось создать комнату: ',
+    errJoin: 'Не удалось войти: ', errNotFound: 'Комната не найдена. Проверь код.',
+    errStarted: 'Эта игра уже началась.', errFull: 'Комната заполнена.', errClosed: 'Комната закрыта.',
+    preview: 'Предпросмотр: играешь только с компьютером. Чтобы играть с друзьями, открой свою ссылку GitHub.',
+    room: 'Комната', roomN: 'Комната {c}', lobbyInfo: '{n} игрока. Отправь эту ссылку друзьям:',
+    share: 'Поделиться ссылкой', copied: 'Ссылка скопирована', shareText: 'Заходи играть в Козла, комната {c}',
+    team: 'Команда {n}', you: '(ты)', emptySeat: 'Свободно (сыграет компьютер)',
+    teamsInfo: 'Игроки 1 и 3 играют в команде против 2 и 4.',
+    starting: 'Начинаем…', start: 'Начать игру', waitHost: 'Ждём, когда хозяин комнаты начнёт игру.',
+    leaveRoom: 'Выйти из комнаты', leave: 'Выйти', rules: 'Правила', back: 'Назад к игре',
+    soundOn: 'Звук вкл', soundOff: 'Звук выкл',
+    confirmHost: 'Выйти? Ты хозяин комнаты, игра остановится у всех.', confirmLeave: 'Выйти из игры?',
+    bot: 'Бот', youShort: 'Ты',
+    trump: 'Козырь {s}', modeNormal: 'Меняется после добора', modeAce: 'Постоянный (туз)',
+    modeSix: 'До последней карты', faceUp: '{c} открыта', inDeck: 'в колоде', deckEmpty: 'колода пуста',
+    whyTie: 'ничья', whyTies: 'ничья ×{n}', whyAce: 'туз', whySix: 'шестёрка', whyEqual: 'равный счёт',
+    partner: 'Партнёр', opponent: 'Соперник', dealerTag: 'сдаёт', dealer: 'Сдаёт',
+    onTop: 'Сверху', faceDown: 'Скинул', yourTurn: 'Твой ход',
+    yourLead: 'Твой ход', leads: 'Начинает {name}', turnOf: 'Ходит {name}',
+    stLead: 'Выбери карты одной масти или одного достоинства и ходи.',
+    stAttack: 'Ты побил. Теперь ходи на соперника: одна или несколько карт одной масти или одного достоинства.',
+    stEnd: 'Побей {cards} ({name}) или закончи кон, тогда карты заберёт {name}.',
+    stFolded: 'Ты скинул. Скинь ещё {n}.',
+    stBeat: 'Побей {cards} ({name}) или скинь {n}.',
+    play: 'Ходить', beat: 'Побить', down: 'Скинуть', end: 'Закончить',
+    takes: '{name} забирает карты', youTake: 'Ты забираешь карты',
+    dealt: '{name} раздал. Козырь: {card}.',
+    aceDeal: 'Туз! Эта раздача в двойном размере, козырь не меняется до конца.',
+    sixDeal: 'Шестёрка! Раздача в двойном размере. Козырь не меняется до последней карты колоды.',
+    equalDeal: 'Счёт равный ({score}), поэтому раздача в двойном размере.',
+    openedNew: '{name} открыл {card}. Теперь козырь {suit}.', openedSame: '{name} открыл {card}. Козырь остаётся {suit}.',
+    dealOver: 'Раздача окончена', kozel: '{u} — козёл!', kozelTeam: '{u} — козлы!',
+    tie: 'Ничья по очкам. Никто не получает очков. Следующая раздача ×{m}.',
+    wonDeal: '{u} выиграл раздачу.', wonDealTeam: '{u} выиграли раздачу.',
+    why_none: 'не взял ни одной карты', why_humiliated: 'позор: карты есть, но 0 очков',
+    why_under: 'меньше {t} очка', why_over: '{t} очко или больше',
+    early: 'Игра закончилась досрочно: больше 12 очков, а у {u} всё ещё 0.',
+    score: 'Счёт', finalScore: 'Итоговый счёт', nextDealer: '{name} забрал последние карты и сдаёт следующим.',
+    nextDeal: 'Следующая раздача', again: 'Сыграть ещё', waitFor: 'Ждём, когда {name} продолжит.',
+    r_team4: 'Команды: игроки 1 и 3 против 2 и 4. Ходят по часовой стрелке.',
+    r_team3: 'Каждый играет сам за себя. Ходят по часовой стрелке.',
+    r_team2: 'Один на один.',
+    r_lead: 'Ходить можно одной картой или несколькими картами одной масти или одного достоинства.',
+    r_flow2: 'Соперник бьёт твои карты или скидывает столько же. Если побил, он ходит на тебя новыми картами: сколько угодно, одной масти или одного достоинства. Кон заканчивается, когда кто-то скидывает, и все карты забирает тот, чьи карты не побили.',
+    r_flow: 'Остальные бьют старшей картой той же масти или козырем, либо скидывают столько же карт. Кто скинул один раз, скидывает до конца кона.',
+    r_flow3: 'Когда ход возвращается к начавшему, у всех сыграно поровну карт. Начавший может бить дальше или закончить кон, и все карты забирает тот, чьи карты сверху.',
+    r_six: '6♣ бьёт любую карту, но после того как её сыграли, это обычная 6♣.',
+    r_rank: 'Старшинство: 6 7 8 9 J Q K 10 A. Очки: A 11, 10 10, K 4, Q 3, J 2.',
+    r_pen3: 'Оба проигравших получают', r_pen: 'Проигравшая сторона получает',
+    r_pen2: '2 (от {t} очка), 4 (меньше {t}), 6 (без карт), 8 (карты есть, 0 очков). При ничьей следующая раздача стоит больше.',
+    r_double: 'Если первый козырь — туз или шестёрка, раздача в двойном размере.',
+    r_equal: 'При равном счёте (2-2, 4-4) следующая раздача в двойном размере. Все удвоения складываются.',
+    r_end: 'Кто набрал больше 24, проиграл. Игра заканчивается досрочно, если у кого-то больше 12, а у другой стороны всё ещё 0.',
+  },
+  en: {
+    chat: 'Chat', chatPh: 'Type a message…', send: 'Send', noMsgs: 'No messages yet.', close: 'Close',
+    title: 'Kozel', yourName: 'Your name', namePh: 'Name', createRoom: 'Create a room:', players: 'players',
+    orJoin: "Or join a friend's room", codePh: 'Room code', join: 'Join',
+    errName: 'Please type your name first.', errCode: 'Room codes are 4 digits.', errCreate: 'Could not create room: ',
+    errJoin: 'Could not join: ', errNotFound: 'Room not found. Check the code.',
+    errStarted: 'That game has already started.', errFull: 'That room is full.', errClosed: 'The room was closed.',
+    preview: 'Preview: you play with computer players only. Use your GitHub link to play with friends.',
+    room: 'Room', roomN: 'Room {c}', lobbyInfo: '{n} players. Send this link to your friends:',
+    share: 'Share link', copied: 'Link copied', shareText: 'Join my Kozel game, room {c}',
+    team: 'Team {n}', you: '(you)', emptySeat: 'Empty (computer will play)',
+    teamsInfo: 'Players 1 and 3 are a team against 2 and 4.',
+    starting: 'Starting…', start: 'Start game', waitHost: 'Waiting for the host to start the game.',
+    leaveRoom: 'Leave room', leave: 'Leave', rules: 'Rules', back: 'Back to game',
+    soundOn: 'Sound on', soundOff: 'Sound off',
+    confirmHost: 'Leave? You are the host, so the game stops for everyone.', confirmLeave: 'Leave this game?',
+    bot: 'Bot', youShort: 'You',
+    trump: 'Trump {s}', modeNormal: 'Changes each refill', modeAce: 'Fixed (Ace)',
+    modeSix: 'Until last card', faceUp: '{c} face up', inDeck: 'in deck', deckEmpty: 'deck empty',
+    whyTie: 'tie', whyTies: '{n} ties', whyAce: 'Ace deal', whySix: '6 deal', whyEqual: 'equal score',
+    partner: 'Partner', opponent: 'Opponent', dealerTag: 'dealer', dealer: 'Dealer',
+    onTop: 'On top', faceDown: 'Face down', yourTurn: 'Your turn',
+    yourLead: 'Your lead', leads: '{name} leads', turnOf: "{name}'s turn",
+    stLead: 'Pick cards of one suit or one rank to lead.',
+    stAttack: 'You beat them. Now play cards on your opponent: one or more, of one suit or one rank.',
+    stEnd: "Beat {name}'s {cards} or end the round ({name} takes the cards).",
+    stFolded: 'You went face down. Put {n} more face down.',
+    stBeat: "Beat {name}'s {cards} or put {n} face down.",
+    play: 'Play', beat: 'Beat', down: 'Put face down', end: 'End round',
+    takes: '{name} takes the cards', youTake: 'You take the cards',
+    dealt: '{name} dealt. Trump revealed: {card}.',
+    aceDeal: 'An Ace! This deal counts double and trump stays the same all deal.',
+    sixDeal: 'A 6! This deal counts double. Trump stays until the last card of the deck.',
+    equalDeal: 'Match score is equal ({score}), so this deal counts double.',
+    openedNew: '{name} opened {card}. Trump is now {suit}.', openedSame: '{name} opened {card}. Trump is still {suit}.',
+    dealOver: 'Deal over', kozel: '{u} is the kozel!', kozelTeam: '{u} are the kozel!',
+    tie: 'Tie for the most points. Nobody scores. The next deal counts ×{m}.',
+    wonDeal: '{u} won the deal.', wonDealTeam: '{u} won the deal.',
+    why_none: 'took no cards', why_humiliated: 'humiliated, cards but 0 points',
+    why_under: 'under {t} points', why_over: '{t} or more points',
+    early: 'Ended early: more than 12 points while {u} still has 0.',
+    score: 'Match score', finalScore: 'Final match score', nextDealer: '{name} won the last cards and deals next.',
+    nextDeal: 'Next deal', again: 'Play again', waitFor: 'Waiting for {name} to continue.',
+    r_team4: 'Teams: players 1 and 3 against 2 and 4. Play goes clockwise.',
+    r_team3: 'Everyone plays alone. Play goes clockwise.',
+    r_team2: 'One against one.',
+    r_lead: 'Lead one card, or several of one suit, or several of one rank.',
+    r_flow2: "Your opponent beats your cards or puts the same number face down. If they beat, they then play new cards on you: any number, of one suit or one rank. The round ends when someone goes face down, and the player whose cards weren't beaten takes all the cards.",
+    r_flow: 'Others beat with higher cards of the same suit or trumps, or put the same number face down. Once face down, you stay face down for that round.',
+    r_flow3: 'When play comes back to the starter, everyone has played the same number of cards. The starter can beat again or end the round, and whoever is on top takes all the cards.',
+    r_six: "6♣ beats any card, but once played it's a normal 6♣.",
+    r_rank: 'Card ranks: 6 7 8 9 J Q K 10 A. Points: A 11, 10 10, K 4, Q 3, J 2.',
+    r_pen3: 'Both players who lose get', r_pen: 'The losing side gets',
+    r_pen2: '2 ({t}+ points), 4 (under {t}), 6 (no cards), 8 (cards but 0 points). A tie for the most points makes the next deal count more.',
+    r_double: 'First trump an Ace or a 6: the deal counts double.',
+    r_equal: 'Equal match score (like 2-2 or 4-4): the next deal counts double. All doubling rules stack.',
+    r_end: 'Over 24 match points loses. The match also ends early if someone has more than 12 while another side still has 0.',
+  },
+};
+let lang = 'kk';
+function t(key, params = {}) {
+  const s = (TEXT[lang] && TEXT[lang][key]) ?? TEXT.en[key] ?? key;
+  return s.replace(/\{(\w+)\}/g, (_, k) => (params[k] ?? ''));
+}
 
 // ===== RULES (shared) =====
 const SUITS = ['♣', '♦', '♥', '♠'];
@@ -218,7 +544,7 @@ function penalty(p, wonAny) {
 function newMatch(n, names, bots) {
   N = n; NAMES = names; BOTS = bots;
   G = { match: Array(unitCount()).fill(0), mult: 1, dealer: Math.floor(Math.random() * N),
-        phase: 'idle', note: '', result: null };
+        phase: 'idle', notes: [], result: null, dealNo: 0, roundNo: 0 };
   startDeal();
 }
 
@@ -231,6 +557,7 @@ function moveCard(card, where) {
 
 function startDeal() {
   G.result = null;
+  G.dealNo += 1;
   G.deck = shuffle(SUITS.flatMap(s => RANKS.map((_, r) => mk(s, r))));
   G.hands = Array.from({ length: N }, () => []);
   for (let i = 0; i < HAND; i++) for (let k = 1; k <= N; k++) G.hands[(G.dealer + k) % N].push(G.deck.pop());
@@ -240,16 +567,20 @@ function startDeal() {
 
   const mid = G.deck[Math.floor(G.deck.length / 2)];
   G.trump = mid.s;
-  let note = `${NAMES[G.dealer]} dealt. Trump revealed: ${mid.id}.`;
+  // Messages are stored as keys; each phone shows them in its own language.
+  const notes = [{ k: 'dealt', p: G.dealer, card: mid.id }];
   if (mid.r === 8) {
     G.mode = 'ace'; G.doubled = true; G.faceUp = mid; moveCard(mid, 'top');
-    note += ' An Ace! This deal counts double and trump stays the same all deal.';
+    notes.push({ k: 'aceDeal' });
   } else if (mid.r === 0) {
     G.mode = 'six'; G.doubled = true; G.faceUp = mid; moveCard(mid, 'second');
-    note += ' A 6! This deal counts double. Trump stays until the last card of the deck.';
+    notes.push({ k: 'sixDeal' });
   }
-  if (G.equalScores) note += ` Match score is equal (${G.match.join('-')}), so this deal counts double.`;
-  G.note = note;
+  if (G.equalScores) notes.push({ k: 'equalDeal', score: G.match.join('-') });
+  G.notes = notes;
+  // For the screen: the revealed card, and how long the deal animation takes.
+  G.reveal = { id: (G.reveal ? G.reveal.id : 0) + 1, card: mid, p: null };
+  G.animMs = 6 * N * 60 + 1500;
   G.phase = 'play';
   beginRound(nxt(G.dealer));
 }
@@ -258,8 +589,8 @@ function beginRound(leader) {
   const active = [...Array(N).keys()].filter(q => G.hands[q].length > 0);
   let l = leader;
   for (let i = 0; i < N && !active.includes(l); i++) l = nxt(l);
-  R = { active, leader: l, cur: l, holder: l, top: [], size: 0, folded: [], table: [], plays: [],
-        mustAttack: false, banner: '' };
+  R = { id: ++G.roundNo, active, leader: l, cur: l, holder: l, top: [], size: 0, folded: [], table: [], plays: [],
+        mustAttack: false, taker: null };
   step();
 }
 
@@ -320,18 +651,20 @@ function advance(wentDown) {
 
 function step() {
   publish();
+  const extra = G.animMs || 0;     // wait for dealing animations before a bot moves
+  G.animMs = 0;
   clearTimeout(botTimer);
   if (G.phase === 'play' && BOTS[R.cur]) {
     const p = R.cur;
-    botTimer = setTimeout(() => aiAct(p), 900);
+    botTimer = setTimeout(() => aiAct(p), 700 + extra);
   }
 }
 
 function finishRound() {
   G.phase = 'roundEnd';
-  R.banner = `${NAMES[R.holder]} takes the cards: ${pts(R.table)} points`;
+  R.taker = R.holder;
   publish();
-  setTimeout(completeRound, 1800);
+  setTimeout(completeRound, 1500);
 }
 
 function completeRound() {
@@ -344,17 +677,18 @@ function completeRound() {
     withCards.forEach(q => { G.won[unitOf(q)].push(...G.hands[q]); G.hands[q] = []; });
     return finishDeal(w);
   }
-  G.note = msg;
+  G.notes = msg ? [msg] : [];
   G.phase = 'play';
   beginRound(w);
 }
 
 function refill(first) {
-  let p = first, lastDrawn = null, lastDeck = null;
+  let p = first, lastDrawn = null, lastDeck = null, drawn = 0;
   while (G.deck.length && G.hands.some(h => h.length < HAND)) {
     if (G.hands[p].length < HAND) {
       const c = G.deck.pop();
       G.hands[p].push(c);
+      drawn++;
       if (G.faceUp && c.id === G.faceUp.id) G.faceUp = null;
       lastDrawn = { c, p };
       if (!G.deck.length) lastDeck = { c, p };
@@ -364,12 +698,14 @@ function refill(first) {
   let pick = null;
   if (G.mode === 'normal') pick = lastDrawn;
   else if (G.mode === 'six') pick = lastDeck;
+  G.animMs = drawn * 60 + (pick ? 1500 : 300);
   if (pick) {
     const changed = pick.c.s !== G.trump;
     G.trump = pick.c.s;
-    return `${NAMES[pick.p]} opened ${pick.c.id}. Trump is ${changed ? 'now' : 'still'} ${pick.c.s}.`;
+    G.reveal = { id: (G.reveal ? G.reveal.id : 0) + 1, card: pick.c, p: pick.p };
+    return { k: changed ? 'openedNew' : 'openedSame', p: pick.p, card: pick.c.id, suit: pick.c.s };
   }
-  return '';
+  return null;
 }
 
 function finishDeal(lastWinner) {
@@ -377,21 +713,20 @@ function finishDeal(lastWinner) {
   const p = G.won.map(pts);
   const best = Math.max(...p);
   const top = units.filter(u => p[u] === best);
-  const text = [];
-  if (top.length > 1) {
+  const res = { team: N === 4, points: p, tie: top.length > 1, lines: [] };
+  if (res.tie) {
     G.mult += 1;
-    text.push(`Tie for the most points. Nobody scores. The next deal counts ×${G.mult}.`);
+    res.nextMult = G.mult;
   } else {
     const mult = dealMult();
-    text.push(`${unitName(top[0])} won the deal.`);
+    res.winner = top[0];
     for (const u of units) {
       if (u === top[0]) continue;
       const wonAny = G.won[u].length > 0;
       const base = penalty(p[u], wonAny);
-      const why = !wonAny ? 'took no cards' : p[u] === 0 ? 'humiliated, cards but 0 points'
-                : p[u] < threshold() ? `under ${threshold()} points` : `${threshold()} or more points`;
+      const why = !wonAny ? 'none' : p[u] === 0 ? 'humiliated' : p[u] < threshold() ? 'under' : 'over';
       G.match[u] += base * mult;
-      text.push(`${unitName(u)}: ${why}, ${base}${mult > 1 ? ' × ' + mult : ''} = ${base * mult} match points.`);
+      res.lines.push({ u, why, base, mult, thr: threshold() });
     }
     G.mult = 1;
   }
@@ -400,19 +735,14 @@ function finishDeal(lastWinner) {
   const high = Math.max(...G.match), low = Math.min(...G.match);
   const earlyEnd = !(high > 24) && high > 12 && low === 0;
   const over = high > 24 || earlyEnd;
-  let title = 'Deal over';
+  res.over = over;
   if (over) {
-    const loser = units.find(u => G.match[u] === high);
-    title = `${unitName(loser)} ${N === 4 ? 'are' : 'is'} the kozel!`;
-    if (earlyEnd) text.push(`Ended early: more than 12 points while ${unitName(units.find(u => G.match[u] === 0))} still has 0.`);
+    res.loser = units.find(u => G.match[u] === high);
+    if (earlyEnd) res.earlyZero = units.find(u => G.match[u] === 0);
   }
-  G.result = {
-    title,
-    rows: units.map(u => [unitName(u), p[u]]),
-    text,
-    score: units.map(u => [unitName(u), G.match[u]]),
-    next: over ? '' : `${NAMES[lastWinner]} won the last cards and deals next.`,
-  };
+  res.score = G.match.slice();
+  res.nextDealer = over ? null : lastWinner;
+  G.result = res;
   G.phase = over ? 'matchEnd' : 'dealEnd';
   publish();
 }
@@ -542,30 +872,38 @@ function hideOverlay() { $('overlay').hidden = true; }
 
 // ---------- Home screen ----------
 function showHome(prefillCode = '', error = '') {
-  showOverlay(`<h2>Kozel</h2>
-    <label class="muted" for="nameIn">Your name</label>
-    <input id="nameIn" maxlength="12" autocomplete="off" value="${esc(myName)}" placeholder="Name">
-    <p class="muted" style="margin-top:14px">Create a room:</p>
+  homeArgs = [prefillCode, error];
+  showOverlay(`<div class="langs">${Object.entries(LANGS).map(([k, v]) =>
+      `<button data-lang="${k}" class="${k === lang ? 'on' : ''}">${v}</button>`).join('')}</div>
+    <h2>${t('title')}</h2>
+    <label class="muted" for="nameIn">${t('yourName')}</label>
+    <input id="nameIn" maxlength="12" autocomplete="off" value="${esc(myName)}" placeholder="${t('namePh')}">
+    <p class="muted" style="margin-top:14px">${t('createRoom')}</p>
     <div class="choices"><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button></div>
-    <p class="muted" style="text-align:center;margin:4px 0 0">players</p>
+    <p class="muted" style="text-align:center;margin:4px 0 0">${t('players')}</p>
     <hr>
-    <label class="muted" for="codeIn">Or join a friend's room</label>
-    <input id="codeIn" inputmode="numeric" maxlength="4" placeholder="Room code" value="${esc(prefillCode)}">
-    <button id="joinBtn">Join</button>
+    <label class="muted" for="codeIn">${t('orJoin')}</label>
+    <input id="codeIn" inputmode="numeric" maxlength="4" placeholder="${t('codePh')}" value="${esc(prefillCode)}">
+    <button id="joinBtn">${t('join')}</button>
     <p class="err" id="err">${esc(error)}</p>`);
+  $('panel').querySelectorAll('[data-lang]').forEach(b => b.onclick = () => {
+    myName = $('nameIn').value.trim() || myName;
+    homeArgs = [$('codeIn').value.trim(), ''];
+    setLang(b.dataset.lang);
+  });
   const readName = () => {
     const n = $('nameIn').value.trim();
-    if (!n) { $('err').textContent = 'Please type your name first.'; return false; }
+    if (!n) { $('err').textContent = t('errName'); return false; }
     myName = n; store.set('kozelName', n); return true;
   };
   $('panel').querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
-    if (readName()) createRoom(Number(b.dataset.n)).catch(e => showHome('', 'Could not create room: ' + e.message));
+    if (readName()) createRoom(Number(b.dataset.n)).catch(e => showHome('', t('errCreate') + e.message));
   });
   $('joinBtn').onclick = () => {
     if (!readName()) return;
     const c = $('codeIn').value.trim();
-    if (!/^\d{4}$/.test(c)) { $('err').textContent = 'Room codes are 4 digits.'; return; }
-    joinRoom(c).catch(e => showHome(c, 'Could not join: ' + e.message));
+    if (!/^\d{4}$/.test(c)) { $('err').textContent = t('errCode'); return; }
+    joinRoom(c).catch(e => showHome(c, t('errJoin') + e.message));
   };
 }
 
@@ -584,11 +922,11 @@ async function createRoom(n) {
 
 async function joinRoom(c) {
   const snap = await get(ref(db, `rooms/${c}`));
-  if (!snap.exists()) return showHome(c, 'Room not found. Check the code.');
+  if (!snap.exists()) return showHome(c, t('errNotFound'));
   const room = snap.val();
   const list = seatList(room.seats, room.meta.n);
   if (list.some(s => s && s.id === myId)) return enterRoom(c);       // rejoining
-  if (room.meta.status !== 'lobby') return showHome(c, 'That game has already started.');
+  if (room.meta.status !== 'lobby') return showHome(c, t('errStarted'));
   let joined = false;
   await runTransaction(ref(db, `rooms/${c}/seats`), cur => {
     if (cur === null) return null;
@@ -599,7 +937,7 @@ async function joinRoom(c) {
     joined = true;
     return cur;
   });
-  if (!joined) return showHome(c, 'That room is full.');
+  if (!joined) return showHome(c, t('errFull'));
   enterRoom(c);
 }
 
@@ -610,12 +948,12 @@ function seatList(raw, n) {
 // ---------- Inside a room ----------
 function enterRoom(c) {
   leaveListeners();
-  code = c; engineReady = false; V = null; lastKey = '';
+  code = c; engineReady = false; V = null; lastKey = ''; prev = null; heldTrump = null;
   history.replaceState(null, '', `?room=${c}`);
-  $('roomLabel').textContent = `Room ${c}`;
+  $('roomLabel').textContent = t('roomN', { c });
   unsubs.push(onValue(roomRef('meta'), s => {
     meta = s.val();
-    if (!meta) { leaveRoom(); return showHome('', 'The room was closed.'); }
+    if (!meta) { leaveRoom(); return showHome('', t('errClosed')); }
     isHost = meta.host === myId;
     renderAll();
   }));
@@ -623,6 +961,24 @@ function enterRoom(c) {
     seats = seatList(s.val(), meta ? meta.n : 4);
     mySeat = seats.findIndex(x => x && x.id === myId);
     renderAll();
+  }));
+  const enteredAt = Date.now();
+  chatMsgs = []; unread = 0; renderChat();
+  unsubs.push(onChildAdded(query(roomRef('chat'), limitToLast(50)), s => {
+    const m = s.val();
+    if (!m || typeof m.text !== 'string') return;
+    chatMsgs.push(m);
+    if (chatMsgs.length > 50) chatMsgs.shift();
+    if (m.t > enteredAt - 3000 && m.by !== myId) {
+      if (!chatOpen) unread++;
+      sfx('pop');
+      if (!chatOpen) bubbleAt(m.seat, m.text.length > 60 ? m.text.slice(0, 58) + '…' : m.text, 'speech', 3500);
+    }
+    renderChat();
+  }));
+  unsubs.push(onChildAdded(query(roomRef('reactions'), limitToLast(5)), s => {
+    const m = s.val();
+    if (m && m.t > enteredAt - 3000) showReaction(m.seat, m.r);
   }));
   unsubs.push(onValue(roomRef('game'), s => {
     const raw = s.val();
@@ -638,6 +994,7 @@ function enterRoom(c) {
 function leaveListeners() { unsubs.forEach(u => u()); unsubs = []; }
 function leaveRoom() {
   leaveListeners();
+  closeChat(); chatMsgs = []; unread = 0;
   code = null; meta = null; V = null; engineReady = false; mySeat = -1;
   history.replaceState(null, '', location.pathname);
 }
@@ -660,7 +1017,7 @@ async function hostStartGame() {
   for (let i = 0; i < n; i++) {
     if (seats[i] && !seats[i].bot) { names.push(seats[i].name); bots.push(false); }
     else {
-      const name = `Bot ${'ABCD'[i]}`;
+      const name = `Bot ${'ABCD'[i]}`;   // shown as Bot/Бот in each player's language
       names.push(name); bots.push(true);
       seatUpdate[i] = { bot: true, name };
     }
@@ -674,10 +1031,18 @@ async function hostStartGame() {
 function sendMove(type) {
   if (pending) return;
   pending = true;
-  push(roomRef('moves'), { seat: mySeat, by: myId, type, cards: [...sel] })
+  const ids = [...sel];
+  // Take the cards out of your hand on screen right away; the host's answer replaces this.
+  const before = V.G.hands[mySeat];
+  V.G.hands[mySeat] = before.filter(c => !sel.has(c.id));
+  if (prev) ids.forEach(id => prev.hand.delete(id));
+  const sentFor = V;
+  push(roomRef('moves'), { seat: mySeat, by: myId, type, cards: ids })
     .catch(() => { pending = false; });
+  // If the host never answers (move refused), put the cards back.
+  setTimeout(() => { if (pending && V === sentFor) { V.G.hands[mySeat] = before; pending = false; renderHandArea(); } }, 4000);
   sel.clear();
-  renderGame();
+  renderHandArea();
 }
 
 // ---------- Rendering ----------
@@ -694,26 +1059,29 @@ function renderAll() {
 function renderLobby() {
   const n = meta.n;
   const rows = seatList(seats, n).map((s, i) => {
-    const team = n === 4 ? `<span class="muted">Team ${i % 2 + 1}</span>` : '';
-    const who = s ? esc(s.name) + (s.id === myId ? ' (you)' : '') : '<span class="muted">Empty (computer will play)</span>';
+    const team = n === 4 ? `<span class="muted">${t('team', { n: i % 2 + 1 })}</span>` : '';
+    const who = s ? (s.bot ? `${t('bot')} ${'ABCD'[i]}` : esc(s.name)) + (s.id === myId ? ' ' + t('you') : '')
+                  : `<span class="muted">${t('emptySeat')}</span>`;
     return `<div class="seatrow"><span>${i + 1}. ${who}</span>${team}</div>`;
   }).join('');
   const starting = meta.status !== 'lobby';
-  showOverlay(`<h2>Room</h2><div class="code">${esc(code)}</div>
-    <p class="muted">${n} players. Send this link to your friends:</p>
+  showOverlay(`<h2>${t('room')}</h2><div class="code">${esc(code)}</div>
+    <p class="muted">${t('lobbyInfo', { n })}</p>
     <input readonly id="linkIn" value="${esc(shareLink())}">
-    <button id="shareBtn">Share link</button>
+    <button id="shareBtn">${t('share')}</button>
     <div style="margin-top:14px">${rows}</div>
-    ${n === 4 ? '<p class="muted">Players 1 and 3 are a team against 2 and 4.</p>' : ''}
-    ${starting ? '<p>Starting…</p>'
-      : isHost ? '<button id="startBtn">Start game</button>'
-      : '<p class="muted">Waiting for the host to start the game.</p>'}
-    <button class="secondary" id="leaveBtn">Leave room</button>`);
+    ${n === 4 ? `<p class="muted">${t('teamsInfo')}</p>` : ''}
+    ${starting ? `<p>${t('starting')}</p>`
+      : isHost ? `<button id="startBtn">${t('start')}</button>`
+      : `<p class="muted">${t('waitHost')}</p>`}
+    <button class="secondary" id="lobbyChat">💬 ${t('chat')}${unread ? ` (${unread})` : ''}</button>
+    <button class="secondary" id="leaveBtn">${t('leaveRoom')}</button>`);
+  $('lobbyChat').onclick = openChat;
   $('shareBtn').onclick = async () => {
     const url = shareLink();
     try {
-      if (navigator.share) await navigator.share({ title: 'Kozel', text: `Join my Kozel game, room ${code}`, url });
-      else { await navigator.clipboard.writeText(url); $('shareBtn').textContent = 'Link copied'; }
+      if (navigator.share) await navigator.share({ title: 'Kozel', text: t('shareText', { c: code }), url });
+      else { await navigator.clipboard.writeText(url); $('shareBtn').textContent = t('copied'); }
     } catch { $('linkIn').select(); }
   };
   if ($('startBtn')) $('startBtn').onclick = () => { $('startBtn').disabled = true; hostStartGame(); };
@@ -723,16 +1091,28 @@ function renderLobby() {
 function renderResult() {
   const r = V.G.result;
   if (!r) return;
-  const rows = r.rows.map(([n, p]) => `<div class="row"><span>${esc(n)}</span><b>${p}</b></div>`).join('');
-  const score = r.score.map(([n, s]) => `${esc(n)} ${s}`).join(', ');
+  const x = ctx();
+  const rows = r.points.map((p, u) => `<div class="row"><span>${esc(x.uName(u))}</span><b>${p}</b></div>`).join('');
+  const lines = [];
+  if (r.tie) lines.push(t('tie', { m: r.nextMult }));
+  else {
+    lines.push(t(r.team ? 'wonDealTeam' : 'wonDeal', { u: x.uName(r.winner) }));
+    for (const l of r.lines) {
+      const calc = l.mult > 1 ? `${l.base} × ${l.mult} = ${l.base * l.mult}` : `${l.base}`;
+      lines.push(`${x.uName(l.u)}: ${t('why_' + l.why, { t: l.thr })}. +${calc}`);
+    }
+  }
+  if (r.earlyZero != null) lines.push(t('early', { u: x.uName(r.earlyZero) }));
   const over = V.G.phase === 'matchEnd';
-  const hostName = seats[0] ? esc(seats[0].name) : 'the host';
-  showOverlay(`<h2>${esc(r.title)}</h2>${rows}${r.text.map(t => `<p>${esc(t)}</p>`).join('')}
-    <p>${over ? 'Final match score' : 'Match score'}: ${score}.</p>
-    ${r.next ? `<p>${esc(r.next)}</p>` : ''}
-    ${isHost ? `<button id="goBtn">${over ? 'Play again' : 'Next deal'}</button>`
-             : `<p class="muted">Waiting for ${hostName} to continue.</p>`}
-    ${over ? '<button class="secondary" id="leaveBtn">Leave room</button>' : ''}`);
+  const title = over ? t(r.team ? 'kozelTeam' : 'kozel', { u: x.uName(r.loser) }) : t('dealOver');
+  const score = r.score.map((v, u) => `${esc(x.uName(u))} ${v}`).join(', ');
+  const hostName = seats[0] ? esc(seats[0].name) : '';
+  showOverlay(`<h2>${esc(title)}</h2>${rows}${lines.map(l => `<p>${esc(l)}</p>`).join('')}
+    <p>${over ? t('finalScore') : t('score')}: ${score}.</p>
+    ${r.nextDealer != null ? `<p>${esc(t('nextDealer', { name: x.names[r.nextDealer] }))}</p>` : ''}
+    ${isHost ? `<button id="goBtn">${over ? t('again') : t('nextDeal')}</button>`
+             : `<p class="muted">${t('waitFor', { name: hostName })}</p>`}
+    ${over ? `<button class="secondary" id="leaveBtn">${t('leaveRoom')}</button>` : ''}`);
   if ($('goBtn')) $('goBtn').onclick = () => {
     $('goBtn').disabled = true;
     if (V.G.phase === 'dealEnd') startDeal(); else newMatch(N, NAMES, BOTS);
@@ -740,131 +1120,598 @@ function renderResult() {
   if ($('leaveBtn')) $('leaveBtn').onclick = () => { leaveRoom(); showHome(); };
 }
 
+// One message from the game, in this phone's language
+function noteText(m, names) {
+  if (!m) return '';
+  return t(m.k, { name: names[m.p] ?? '', card: m.card, suit: m.suit, score: m.score });
+}
+
 const SEATS = { 2: { 1: 'Top' }, 3: { 1: 'Left', 2: 'Right' }, 4: { 1: 'Left', 2: 'Top', 3: 'Right' } };
+const TURN_SECONDS = 30;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- Sound & haptics ----------
+let actx = null, soundOn = store.get('kozelSound') !== 'off';
+function audio() {
+  if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; actx = new C(); }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+document.addEventListener('pointerdown', () => { if (soundOn) audio(); });   // iOS needs a tap first
+function tone(freq, dur, type = 'sine', vol = 0.12, when = 0) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+const noiseCache = {};
+function snap(vol = 0.25, freq = 2400, dur = 0.07, when = 0) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + when;
+  const key = Math.round(dur * 100);
+  if (!noiseCache[key]) {
+    const len = Math.floor(a.sampleRate * dur);
+    const b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 2;
+    noiseCache[key] = b;
+  }
+  const buf = noiseCache[key];
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; g.gain.value = vol;
+  src.connect(f).connect(g).connect(a.destination); src.start(t);
+}
+const SFX = {
+  card: () => snap(0.3, 2400),
+  down: () => snap(0.15, 900, 0.09),
+  deal: (i = 0) => snap(0.12, 3200, 0.04, i * 0.09),
+  turn: () => { tone(660, 0.12); tone(990, 0.18, 'sine', 0.12, 0.12); },
+  win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.1, i * 0.08)),
+  lose: () => { tone(392, 0.18, 'sine', 0.08); tone(311, 0.26, 'sine', 0.08, 0.14); },
+  flip: () => { snap(0.25, 1800, 0.09); tone(740, 0.15, 'triangle', 0.06, 0.05); },
+  pop: () => { tone(880, 0.08, 'sine', 0.1); tone(1320, 0.1, 'sine', 0.08, 0.05); },
+};
+const sfx = (name, arg) => { if (soundOn) try { SFX[name](arg); } catch {} };
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
+
+// ---------- Flying cards ----------
+// A copy of the card flies over everything, so it isn't clipped by the table area.
+function ghostOf(el, rect) {
+  const g = el.cloneNode(true);
+  g.classList.remove('sel');
+  Object.assign(g.style, { position: 'fixed', left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px',
+    height: rect.height + 'px', margin: 0, zIndex: 20, pointerEvents: 'none', visibility: 'visible' });
+  document.body.appendChild(g);
+  return g;
+}
+const center = r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+function flyIn(el, fromRect, { delay = 0, flip = false, dur = 420 } = {}) {
+  if (reduceMotion || !fromRect) return;
+  const to = el.getBoundingClientRect(), a = center(fromRect), b = center(to);
+  const g = ghostOf(el, to);
+  el.style.visibility = 'hidden';
+  const anim = g.animate([
+    { transform: `translate(${a.x - b.x}px, ${a.y - b.y}px) scale(.5)${flip ? ' rotateY(180deg)' : ''}`, opacity: 0.5 },
+    { transform: 'none', opacity: 1 }],
+    { duration: dur, delay, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+  const done = () => { g.remove(); el.style.visibility = ''; };
+  anim.onfinish = done; anim.oncancel = done;
+}
+function flyOut(el, toRect, { delay = 0, dur = 520 } = {}) {
+  if (reduceMotion || !toRect) return;
+  const from = el.getBoundingClientRect(), a = center(from), b = center(toRect);
+  const g = ghostOf(el, from);
+  el.style.visibility = 'hidden';
+  const anim = g.animate([
+    { transform: 'none', opacity: 1 },
+    { transform: `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(.35)`, opacity: 0 }],
+    { duration: dur, delay, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+  const done = () => g.remove();
+  anim.onfinish = done; anim.oncancel = done;
+}
+function flash(el, color = 'rgba(242,194,48,.9)') {
+  if (reduceMotion || !el) return;
+  el.animate([{ boxShadow: '0 0 0 0 transparent' }, { boxShadow: `0 0 22px 6px ${color}` }, { boxShadow: '0 0 0 0 transparent' }],
+    { duration: 900, iterations: 2 });
+}
+
+// ---------- Dealing & reveal ----------
+function dealAnimation(x, order, freshDeal, p0) {
+  const { g, me } = x;
+  if (reduceMotion) return;
+  const deckEl = $('deckStack');
+  if (!deckEl) return;
+  const from = deckEl.getBoundingClientRect();
+  // Targets: your new hand cards (in screen order) and each opponent's new card backs
+  const myCards = [...$('hand').querySelectorAll('.card')]
+    .filter(el => freshDeal || !p0 || !p0.hand.has(el.dataset.id));
+  const backsFor = {};
+  g.hands.forEach((h, p) => {
+    if (p === me) return;
+    const all = [...x.seatEl(p).querySelectorAll('.back-mini')];
+    backsFor[p] = freshDeal || !p0 ? all : all.slice(p0.counts[p] ?? 0);
+  });
+  myCards.forEach(el => el.style.visibility = 'hidden');
+  Object.values(backsFor).forEach(list => list.forEach(el => el.style.visibility = 'hidden'));
+
+  const myQueue = myCards.slice(), theirQueue = {};
+  for (const p in backsFor) theirQueue[p] = backsFor[p].slice();
+  order.forEach((p, i) => {
+    const target = p === me ? myQueue.shift() : theirQueue[p]?.shift();
+    if (!target) return;
+    const to = target.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'card mini back';
+    Object.assign(ghost.style, { position: 'fixed', left: from.left + 'px', top: from.top + 'px',
+      width: from.width + 'px', height: from.height + 'px', zIndex: 20, pointerEvents: 'none' });
+    document.body.appendChild(ghost);
+    const a = center(from), b = center(to);
+    const sc = to.width / from.width;
+    const anim = ghost.animate([
+      { transform: 'none', opacity: 1 },
+      { transform: `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(${sc}) rotate(${p === me ? 0 : 20}deg)`, opacity: 1 }],
+      { duration: 280, delay: i * 60, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'both' });
+    setTimeout(() => sfx('deal'), i * 60);
+    const done = () => { ghost.remove(); target.style.visibility = ''; };
+    anim.onfinish = done; anim.oncancel = done;
+  });
+}
+
+function revealAnimation(x, rv, delay) {
+  if (reduceMotion || !rv || !rv.card) return;
+  const deckEl = $('deckStack');
+  const deck = (deckEl || $('deckZone')).getBoundingClientRect();
+  const table = $('table').getBoundingClientRect();
+  const W = 52, H = 76;
+  const cx = table.left + table.width / 2, cy = table.top + table.height / 2;
+  const make = (cls, html) => {
+    const el = document.createElement('div');
+    el.className = cls; el.innerHTML = html;
+    Object.assign(el.style, { position: 'fixed', left: cx - W / 2 + 'px', top: cy - H / 2 + 'px',
+      width: W + 'px', height: H + 'px', zIndex: 25, pointerEvents: 'none' });
+    document.body.appendChild(el);
+    return el;
+  };
+  const back = make('card big back', '');
+  const face = make(`card big reveal${isRed(rv.card) ? ' red' : ''}`,
+    `<span>${RANKS[rv.card.r]}</span><span class="s">${rv.card.s}</span>`);
+  const d = center(deck);
+  const start = `translate(${d.x - cx}px, ${d.y - cy}px) scale(.55)`;
+  back.animate([{ transform: start }, { transform: 'scale(1.5) rotateY(90deg)' }],
+    { duration: 300, delay, easing: 'ease-in', fill: 'backwards' }).onfinish = () => back.remove();
+  // Where the card goes afterwards: to the player who picked it up, or back into the deck
+  const dest = rv.p == null ? deck : (rv.p === x.me ? $('hand') : x.seatEl(rv.p)).getBoundingClientRect();
+  const e = center(dest);
+  face.style.opacity = 0;
+  const anim = face.animate([
+    { transform: 'scale(1.5) rotateY(90deg)', opacity: 1 },
+    { transform: 'scale(1.7) rotateY(0deg)', opacity: 1, offset: 0.15 },
+    { transform: 'scale(1.7)', opacity: 1, offset: 0.7 },
+    { transform: `translate(${e.x - cx}px, ${e.y - cy}px) scale(.45)`, opacity: 0 }],
+    { duration: 1150, delay: delay + 300, easing: 'ease-in-out', fill: 'forwards' });
+  setTimeout(() => sfx('flip'), delay + 300);
+  anim.onfinish = () => face.remove();
+  anim.oncancel = () => face.remove();
+}
+
+// ---------- Game screen ----------
+let prev = null, turnKey = '', turnStart = 0, busyUntil = 0;
+let heldTrump = null;                    // what the screen shows while the trump card is being opened
+const shown = () => heldTrump || V.G;
+const suitTxt = s => s || '?';   // no moves while cards are being dealt
+
+function ctx() {
+  const { N: n, G: g, R: r } = V;
+  const names = V.NAMES.map((nm, p) => (V.BOTS && V.BOTS[p] ? `${t('bot')} ${'ABCD'[p]}` : nm));
+  const me = mySeat;
+  const x = { n, names, g, r, me };
+  x.uOf = p => (n === 4 ? p % 2 : p);
+  x.uName = u => (n === 4 ? `${names[u]} + ${names[u + 2]}` : names[u]);
+  x.maxLead = () => Math.min(...r.active.map(q => g.hands[q].length));
+  x.canEnd = p => n > 2 && r.size > 0 && !r.mustAttack && r.cur === p && r.leader === p;
+  x.seatEl = p => (p === me ? $('meBar') : $('seat' + SEATS[n][(p - me + n) % n]));
+  x.myTurn = g.phase === 'play' && r.cur === me && !pending && performance.now() >= busyUntil;
+  return x;
+}
 
 function cardHTML(c, trump, cls = 'mini', faceDown = false) {
   if (faceDown) return `<div class="card ${cls} back"></div>`;
   return `<div class="card ${cls}${isRed(c) ? ' red' : ''}${c.s === trump ? ' trump' : ''}" data-id="${c.id}"><span>${RANKS[c.r]}</span><span class="s">${c.s}</span></div>`;
 }
+const timerHTML = () => {
+  const el = (performance.now() - turnStart) / 1000;
+  return `<div class="timer"><i style="animation-duration:${TURN_SECONDS}s;animation-delay:-${el.toFixed(2)}s"></i></div>`;
+};
 
 function renderGame() {
   if (!V || mySeat < 0) return;
-  const { N: n, NAMES: names, G: g, R: r } = V;
-  const me = mySeat;
-  const uOf = p => (n === 4 ? p % 2 : p);
-  const uCount = n === 4 ? 2 : n;
-  const uName = u => (n === 4 ? `${names[u]} + ${names[u + 2]}` : names[u]);
-  const vMaxLead = () => Math.min(...r.active.map(q => g.hands[q].length));
-  const vCanEnd = p => n > 2 && r.size > 0 && !r.mustAttack && r.cur === p && r.leader === p;
+  const x = ctx(), { n, names, g, r, me } = x;
 
-  $('scores').innerHTML = [...Array(uCount).keys()].map(u =>
-    `<div class="score${u === uOf(me) ? ' us' : ''}"><span>${esc(uName(u))}</span><b>${g.match[u]}</b></div>`).join('');
+  // Keep showing the old trump until the new card has been opened on screen
+  const rv = g.reveal, p0 = prev;
+  const freshDeal = p0 ? p0.dealNo !== g.dealNo : (g.deck.length === 36 - 6 * n && r.plays.length === 0);
+  if (!reduceMotion && rv && (freshDeal || (p0 && p0.revealId !== rv.id))) {
+    heldTrump = freshDeal ? { trump: null, mode: 'normal', doubled: false, faceUp: null, notes: [] }
+                          : { trump: p0.trump, mode: p0.mode, doubled: p0.doubled, faceUp: p0.faceUp, notes: p0.notes };
+  }
+  const d = shown();
 
+  const tk = `${r.id}-${r.plays.length}-${r.cur}-${g.phase}-${r.mustAttack}`;
+  const turnChanged = tk !== turnKey;
+  if (turnChanged) { turnKey = tk; turnStart = performance.now(); }
+
+  // Header
+  $('scores').innerHTML = [...Array(n === 4 ? 2 : n).keys()].map(u =>
+    `<div class="score${u === x.uOf(me) ? ' us' : ''}"><span>${esc(x.uName(u))}</span><b>${g.match[u]}</b></div>`).join('');
   const ts = $('trumpSuit');
-  ts.textContent = g.trump;
-  ts.className = isRed({ s: g.trump }) ? 'red' : '';
-  const mult = g.mult + (g.doubled ? 1 : 0) + (g.equalScores ? 1 : 0);
-  const modeText = g.mode === 'ace' ? 'Fixed (Ace)' : g.mode === 'six' ? 'Until last card' : 'Changes each refill';
-  $('trumpInfo').innerHTML = `Trump<br>Deck: ${g.deck.length}<br>${modeText}` +
-    (g.faceUp ? `<br>${g.faceUp.id} face up` : '') +
-    (mult > 1 ? `<br><span class="mult">×${mult}</span>` : '');
+  ts.textContent = suitTxt(d.trump);
+  ts.className = isRed({ s: d.trump }) ? 'red' : '';
+  const mult = g.mult + (d.doubled ? 1 : 0) + (g.equalScores ? 1 : 0);
+  const modeText = d.mode === 'ace' ? t('modeAce') : d.mode === 'six' ? t('modeSix') : t('modeNormal');
+  $('trumpInfo').innerHTML = `<b class="${isRed({ s: d.trump }) ? 'red' : ''}">${t('trump', { s: suitTxt(d.trump) })}</b><br>${modeText}` +
+    (d.faceUp ? `<br>${t('faceUp', { c: d.faceUp.id })}` : '') + (mult > 1 ? `<br><span class="mult">×${mult}</span>` : '');
 
+  // Other players
+  const onTop = p => r.size > 0 && r.holder === p && g.phase === 'play';
   for (const pos of ['Top', 'Left', 'Right']) { const el = $('seat' + pos); el.className = 'seat hidden'; el.innerHTML = ''; }
   for (let rel = 1; rel < n; rel++) {
-    const p = (me + rel) % n;
-    const el = $('seat' + SEATS[n][rel]);
+    const p = (me + rel) % n, el = $('seat' + SEATS[n][rel]);
     const partner = n === 4 && rel === 2;
-    el.className = `seat ${partner ? 't0' : 't1'}${r.cur === p && g.phase === 'play' ? ' turn' : ''}`;
+    const turn = r.cur === p && g.phase === 'play';
+    el.className = `seat ${partner ? 't0 partner' : 't1'}${turn ? ' turn' : ''}`;
     el.innerHTML = `<div class="name">${esc(names[p])}</div>
-      <div class="tag">${partner ? 'Partner' : 'Opponent'}${g.dealer === p ? ', dealer' : ''}</div>
+      <div class="tag">${partner ? t('partner') : t('opponent')}${g.dealer === p ? ', ' + t('dealerTag') : ''}</div>
       <div class="backs">${'<div class="back-mini"></div>'.repeat(g.hands[p].length)}</div>
-      ${n > 2 && r.folded.includes(p) ? '<div class="down">Face down</div>' : ''}`;
+      ${onTop(p) ? `<div class="ontop">${t('onTop')}</div>` : ''}
+      ${n > 2 && r.folded.includes(p) ? `<div class="down">${t('faceDown')}</div>` : ''}
+      ${turn ? timerHTML() : ''}`;
   }
 
+  // Deck in the middle, with the trump under it
+  const left = g.deck.length;
+  const layers = Math.min(left, 5);
+  let stack = '';
+  if (d.faceUp && d.mode === 'six') stack += `<div class="card mini faceup peek${isRed(d.faceUp) ? ' red' : ''}"><span>${RANKS[d.faceUp.r]}</span><span class="s">${d.faceUp.s}</span></div>`;
+  for (let i = 0; i < layers; i++) stack += `<div class="card mini back layer" style="transform:translate(${-i * 1.5}px,${-i * 1.5}px)"></div>`;
+  if (d.faceUp && d.mode === 'ace') stack += `<div class="card mini faceup ontopcard${isRed(d.faceUp) ? ' red' : ''}" style="transform:translate(${-layers * 1.5}px,${-layers * 1.5}px)"><span>${RANKS[d.faceUp.r]}</span><span class="s">${d.faceUp.s}</span></div>`;
+  $('deckZone').innerHTML = `<div class="deckwrap">
+      <div class="trumpslot${isRed({ s: d.trump }) ? ' red' : ''}${d.trump ? '' : ' unknown'}"><span>${suitTxt(d.trump)}</span></div>
+      <div class="stack${left ? '' : ' empty'}" id="deckStack">${stack}</div>
+    </div>
+    <div class="deckinfo"><b>${left}</b><span>${left ? t('inDeck') : t('deckEmpty')}</span><span class="tl">${t('trump', { s: suitTxt(d.trump) })}</span></div>` +
+    (mult > 1 ? `<div class="multbadge"><b>×${mult}</b><span>${[
+        g.mult > 1 ? (g.mult > 2 ? t('whyTies', { n: g.mult - 1 }) : t('whyTie')) : '',
+        d.doubled ? (d.mode === 'ace' ? t('whyAce') : t('whySix')) : '',
+        g.equalScores ? t('whyEqual') : ''].filter(Boolean).join(' + ')}</span></div>` : '');
+
+  // Table
   const c = $('center');
   if (!r.plays.length) {
-    c.innerHTML = `<div class="empty">${r.cur === me ? 'Your lead' : esc(names[r.cur]) + ' leads'}</div>`;
+    c.innerHTML = `<div class="empty">${r.cur === me ? t('yourLead') : esc(t('leads', { name: names[r.cur] }))}</div>`;
   } else {
-    const topIdx = r.plays.map(x => !x.down).lastIndexOf(true);
-    c.innerHTML = r.plays.map((pl, i) => `<div class="play${i === topIdx ? ' top' : ''}">
-        <span class="who">${pl.p === me ? 'You' : esc(names[pl.p])}</span>
-        <div class="cards">${pl.cs.map(x => cardHTML(x, g.trump, 'mini', pl.down)).join('')}</div></div>`).join('') +
-      (g.phase === 'roundEnd' && r.banner ? `<div class="banner">${esc(r.banner)}</div>` : '');
-    c.scrollTop = c.scrollHeight;
+    // Cards pile up on top of each other, nudged toward whoever played them
+    const topIdx = r.plays.map(p => !p.down).lastIndexOf(true);
+    const last = r.plays.length - 1;
+    const DIR = { 0: [0, 1], 1: [-1, 0], 2: [0, -1], 3: [1, 0] };          // you, left, top, right
+    const dirOf = p => {
+      const rel = (p - me + n) % n;
+      const pos = rel === 0 ? 0 : { Left: 1, Top: 2, Right: 3 }[SEATS[n][rel]];
+      return DIR[pos];
+    };
+    const jitter = (i, k) => { const v = Math.sin((r.id * 31 + i * 17 + k * 7) * 12.9898) * 43758.5453; return v - Math.floor(v) - 0.5; };
+    c.innerHTML = `<div class="pile">${r.plays.map((pl, i) => {
+      const [dx, dy] = dirOf(pl.p);
+      // Face-down cards are pushed out toward the player, under everything else;
+      // the cards to beat always stay on top in the middle.
+      const isTop = i === topIdx;
+      const out = isTop ? 4 : pl.down ? 50 : 34;
+      const tx = dx * out + jitter(i, 1) * (isTop ? 6 : 14), ty = dy * out * 0.85 + jitter(i, 2) * (isTop ? 6 : 12);
+      const rot = jitter(i, 3) * (isTop ? 6 : 18);
+      const tag = i === last || isTop;
+      const z = isTop ? 100 : pl.down ? i + 1 : i + 20;
+      // Spread several cards so each one is readable (they fit the table width)
+      const k = pl.cs.length;
+      const ov = k > 1 ? Math.max(-22, Math.min(3, (190 - 42 * k) / (k - 1))) : 0;
+      return `<div class="grp${isTop ? ' top' : ''}${pl.down ? ' fd' : ''}${k > 1 ? ' multi' : ''}" style="--ov:${ov.toFixed(1)}px;z-index:${z};transform:translate(-50%,-50%) translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) rotate(${rot.toFixed(1)}deg)">
+        ${pl.cs.map(cd => cardHTML(cd, d.trump, 'mid', pl.down)).join('')}
+        ${tag ? `<span class="who">${pl.p === me ? t('youShort') : esc(names[pl.p])}</span>` : ''}</div>`;
+    }).join('')}</div>` +
+      (g.phase === 'roundEnd' && r.taker != null ? `<div class="banner">${esc(r.taker === me ? t('youTake') : t('takes', { name: names[r.taker] }))}</div>` : '');
   }
 
-  const myTurn = g.phase === 'play' && r.cur === me && !pending;
+  // Status line
   let turn = '';
   if (g.phase === 'play') {
     if (r.cur === me) {
-      const topTxt = `${esc(names[r.holder])}'s ${r.top.map(x => x.id).join(' ')}`;
-      if (r.size === 0) turn = 'Your lead. Pick cards of one suit or one rank.';
-      else if (r.mustAttack) turn = 'You beat them. Now play cards on your opponent: one or more, of one suit or one rank.';
-      else if (vCanEnd(me)) turn = `Beat ${topTxt} or end the round (${esc(names[r.holder])} takes the cards).`;
-      else if (r.folded.includes(me)) turn = `You went face down. Put ${r.size} more face down.`;
-      else turn = `Beat ${topTxt} or put ${r.size} face down.`;
-    } else turn = `${esc(names[r.cur])}'s turn`;
+      const prm = { name: names[r.holder], cards: r.top.map(cd => cd.id).join(' '), n: r.size };
+      if (r.size === 0) turn = t('stLead');
+      else if (r.mustAttack) turn = t('stAttack');
+      else if (x.canEnd(me)) turn = t('stEnd', prm);
+      else if (r.folded.includes(me)) turn = t('stFolded', prm);
+      else turn = t('stBeat', prm);
+    } else turn = t('turnOf', { name: names[r.cur] });
   }
-  $('status').innerHTML = `<div>${turn}</div>${g.note ? `<div class="note">${esc(g.note)}</div>` : ''}`;
+  const notes = (d.notes || []).map(m => noteText(m, names)).join(' ');
+  $('status').innerHTML = `<div>${esc(turn)}</div>${notes ? `<div class="note">${esc(notes)}</div>` : ''}`;
 
-  const order = s => (s === g.trump ? 9 : SUITS.indexOf(s));
+  renderHandArea();
+  animateChanges(x, turnChanged);
+}
+
+// Only the bottom area: used when you tap cards, so table animations keep running.
+function renderHandArea() {
+  const x = ctx(), { n, names, g, r, me } = x;
+  const d = shown();
+  const myTurnNow = g.phase === 'play' && r.cur === me;
+  const mb = $('meBar');
+  mb.className = myTurnNow ? 'turn' : '';
+  mb.innerHTML = `<span class="name ${n === 4 ? 't0' : ''}">${esc(names[me])}</span>
+    ${myTurnNow ? `<span class="pill">${t('yourTurn')}</span>` + timerHTML() : ''}
+    ${r.size > 0 && r.holder === me && g.phase === 'play' ? `<span class="ontop">${t('onTop')}</span>` : ''}
+    ${n > 2 && r.folded.includes(me) && g.phase === 'play' ? `<span class="down">${t('faceDown')}</span>` : ''}
+    ${g.dealer === me ? `<span class="tag">${t('dealer')}</span>` : ''}`;
+
+  const order = s => (s === d.trump ? 9 : SUITS.indexOf(s));
   const hand = g.hands[me].slice().sort((a, b) => order(a.s) - order(b.s) || a.r - b.r);
-  $('hand').innerHTML = hand.map(x => cardHTML(x, g.trump, 'big' + (sel.has(x.id) ? ' sel' : ''))).join('');
+  $('hand').innerHTML = hand.map(cd => cardHTML(cd, d.trump, 'big' + (sel.has(cd.id) ? ' sel' : ''))).join('');
   $('hand').querySelectorAll('.card').forEach(el => el.onclick = () => {
-    if (!myTurn) return;
+    if (!x.myTurn) return;
     const id = el.dataset.id;
     sel.has(id) ? sel.delete(id) : sel.add(id);
-    renderGame();
+    buzz(8);
+    renderHandArea();
   });
 
-  const mine = g.hands[me].filter(x => sel.has(x.id));
+  const mine = g.hands[me].filter(cd => sel.has(cd.id));
   const bp = $('btnPlay'), bd = $('btnDown');
-  if (myTurn && (r.size === 0 || r.mustAttack)) {
-    bp.textContent = 'Play'; bp.disabled = !validLead(mine) || mine.length > vMaxLead();
-    bd.textContent = 'Put face down'; bd.disabled = true;
+  if (x.myTurn && (r.size === 0 || r.mustAttack)) {
+    bp.textContent = t('play'); bp.disabled = !validLead(mine) || mine.length > x.maxLead();
+    bd.textContent = t('down'); bd.disabled = true;
     bp.onclick = () => sendMove(r.size === 0 ? 'lead' : 'attack');
-  } else if (myTurn && vCanEnd(me)) {
-    bp.textContent = 'Beat';
-    bp.disabled = !(mine.length === r.size && beatsSet(mine, r.top, g.trump));
-    bd.textContent = 'End round'; bd.disabled = false;
-    bp.onclick = () => sendMove('beat');
-    bd.onclick = () => sendMove('end');
+  } else if (x.myTurn && x.canEnd(me)) {
+    bp.textContent = t('beat'); bp.disabled = !(mine.length === r.size && beatsSet(mine, r.top, g.trump));
+    bd.textContent = t('end'); bd.disabled = false;
+    bp.onclick = () => sendMove('beat'); bd.onclick = () => sendMove('end');
   } else {
-    bp.textContent = 'Beat';
-    bp.disabled = !(myTurn && !r.folded.includes(me) && mine.length === r.size && beatsSet(mine, r.top, g.trump));
-    bd.textContent = 'Put face down';
-    bd.disabled = !(myTurn && mine.length === r.size);
-    bp.onclick = () => sendMove('beat');
-    bd.onclick = () => sendMove('down');
+    bp.textContent = t('beat');
+    bp.disabled = !(x.myTurn && !r.folded.includes(me) && mine.length === r.size && beatsSet(mine, r.top, g.trump));
+    bd.textContent = t('down'); bd.disabled = !(x.myTurn && mine.length === r.size);
+    bp.onclick = () => sendMove('beat'); bd.onclick = () => sendMove('down');
   }
 }
 
+// Compare with the last screen and animate whatever changed.
+function animateChanges(x, turnChanged) {
+  const { g, r, me } = x;
+  const handIds = g.hands[me].map(cd => cd.id);
+  const ds = shown();
+  const now = { roundId: r.id, dealNo: g.dealNo, plays: r.plays.length, phase: g.phase, trump: ds.trump,
+                mode: ds.mode, doubled: ds.doubled, faceUp: ds.faceUp, notes: ds.notes,
+                hand: new Set(handIds), counts: g.hands.map(h => h.length) };
+  const p0 = prev;
+  prev = now;
+
+  // Trump card flips over on a new deal or a trump change
+  if (p0 && p0.trump !== ds.trump && ds.trump) {
+    if (!reduceMotion) $('trumpSuit').animate([{ transform: 'rotateY(90deg) scale(1.2)' }, { transform: 'none' }],
+      { duration: 500, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  }
+
+  // New plays slide in from the player who made them
+  const firstNew = p0 && p0.roundId === r.id ? p0.plays : 0;
+  if (r.plays.length > firstNew) {
+    const rows = $('center').querySelectorAll('.grp');
+    for (let i = firstNew; i < r.plays.length; i++) {
+      const pl = r.plays[i], from = (pl.p === me ? $('hand') : x.seatEl(pl.p)).getBoundingClientRect();
+      rows[i]?.querySelectorAll('.card').forEach((el, k) => flyIn(el, from, { delay: k * 60, flip: pl.down }));
+      sfx(pl.down ? 'down' : 'card');
+    }
+  }
+
+  // Round over: flash the winner, then cards fly to them
+  if (g.phase === 'roundEnd' && !(p0 && p0.phase === 'roundEnd' && p0.roundId === r.id)) {
+    const wEl = x.seatEl(r.holder);
+    flash(wEl);
+    const mine = x.uOf(r.holder) === x.uOf(me);
+    sfx(mine ? 'win' : 'lose');
+    if (r.holder === me) buzz([20, 40, 20]);
+    const to = wEl.getBoundingClientRect();
+    $('center').querySelectorAll('.card').forEach((el, k) => flyOut(el, to, { delay: 450 + k * 20, dur: 400 }));
+  }
+
+  // Dealing: cards fly from the deck to each player, one at a time around the table
+  const n = x.n;
+  const freshDeal = p0 ? p0.dealNo !== g.dealNo
+                       : (g.deck.length === 36 - 6 * n && r.plays.length === 0);
+  let order = [];
+  if (freshDeal) {
+    for (let i = 0; i < 6; i++) for (let k = 1; k <= n; k++) order.push((g.dealer + k) % n);
+  } else if (p0) {
+    const need = g.hands.map((h, p) => Math.max(0, h.length - (p0.counts[p] ?? 0)));
+    let p = r.leader;
+    while (need.some(v => v > 0)) { if (need[p] > 0) { order.push(p); need[p]--; } p = (p + 1) % n; }
+  }
+  if (order.length) dealAnimation(x, order, freshDeal, p0);
+  let busyMs = order.length ? order.length * 60 + 280 : 0;
+
+  // The revealed trump card flips over in the middle of the table
+  const rv = g.reveal;
+  if (rv && (freshDeal || (p0 && p0.revealId !== rv.id))) {
+    const revealDelay = order.length * 60 + 150;
+    revealAnimation(x, rv, revealDelay);
+    const doneAt = revealDelay + 300 + 1150;
+    busyMs = doneAt;
+    setTimeout(() => { heldTrump = null; if (V) renderGame(); }, doneAt);
+  }
+  if (busyMs && !reduceMotion) {
+    busyUntil = performance.now() + busyMs;
+    setTimeout(() => { if (V) renderHandArea(); }, busyMs + 30);
+  }
+  now.revealId = rv ? rv.id : 0;
+
+  // Your turn: chime + buzz
+  if (turnChanged && g.phase === 'play' && r.cur === me) { sfx('turn'); buzz(25); }
+}
+
+// ---------- Reactions ----------
+const EMOJIS = ['😂', '🤣', '😜', '😏', '🤡', '🐐', '👏', '😡'];
+const SIGNS = ['Хаха, қотақбас', 'Сордыңба?', 'Малсыңба?'];
+let lastReact = 0;
+
+function sendReaction(r) {
+  const now = Date.now();
+  if (now - lastReact < 1500 || !code || mySeat < 0) return;    // small cooldown against spam
+  lastReact = now;
+  closePicker();
+  push(roomRef('reactions'), { seat: mySeat, by: myId, r, t: now })
+    .then(ref => setTimeout(() => remove(ref), 15000)).catch(() => {});
+}
+
+function showReaction(seat, r) {
+  if (!V || seat == null) return;
+  const x = ctx(), el = x.seatEl(seat);
+  if (!el || el.classList.contains('hidden')) return;
+  const rect = el.getBoundingClientRect();
+  const isSign = SIGNS.includes(r);
+  const b = document.createElement('div');
+  b.className = isSign ? 'react sign' : 'react';
+  b.textContent = isSign ? r : (EMOJIS.includes(r) ? r : '🙂');
+  document.body.appendChild(b);
+  const w = b.offsetWidth, h = b.offsetHeight;
+  const left = Math.min(Math.max(8, rect.left + rect.width / 2 - w / 2), window.innerWidth - w - 8);
+  const top = Math.max(8, rect.top + rect.height / 2 - h / 2);
+  Object.assign(b.style, { left: left + 'px', top: top + 'px' });
+  sfx('pop');
+  const dur = isSign ? 3200 : 2200;
+  if (reduceMotion) { setTimeout(() => b.remove(), dur); return; }
+  const a = b.animate(isSign
+    ? [{ transform: 'scale(.3) rotate(-14deg)', opacity: 0 }, { transform: 'scale(1.1) rotate(-4deg)', opacity: 1, offset: .12 },
+       { transform: 'scale(1) rotate(-4deg)', opacity: 1, offset: .85 }, { transform: 'scale(.9) rotate(-4deg)', opacity: 0 }]
+    : [{ transform: 'scale(.4)', opacity: 0 }, { transform: 'scale(1.3)', opacity: 1, offset: .15 },
+       { transform: 'translateY(-50px) scale(1)', opacity: 1, offset: .75 }, { transform: 'translateY(-80px)', opacity: 0 }],
+    { duration: dur, easing: 'ease-out' });
+  a.onfinish = () => b.remove();
+}
+
+// A speech bubble over a player's seat (used for chat messages)
+function bubbleAt(seat, text, cls, dur) {
+  if (!V || seat == null || seat < 0) return;
+  const el = ctx().seatEl(seat);
+  if (!el || el.classList.contains('hidden')) return;
+  const rect = el.getBoundingClientRect();
+  const b = document.createElement('div');
+  b.className = 'react ' + cls;
+  b.textContent = text;
+  document.body.appendChild(b);
+  const w = b.offsetWidth, h = b.offsetHeight;
+  const left = Math.min(Math.max(8, rect.left + rect.width / 2 - w / 2), window.innerWidth - w - 8);
+  const top = Math.max(8, rect.top - h + 10);
+  Object.assign(b.style, { left: left + 'px', top: top + 'px' });
+  if (reduceMotion) { setTimeout(() => b.remove(), dur); return; }
+  b.animate([{ transform: 'translateY(8px) scale(.8)', opacity: 0 }, { transform: 'none', opacity: 1, offset: .08 },
+             { transform: 'none', opacity: 1, offset: .9 }, { transform: 'translateY(-6px)', opacity: 0 }],
+            { duration: dur, easing: 'ease-out' }).onfinish = () => b.remove();
+}
+
+// ---------- Group chat ----------
+let chatMsgs = [], chatOpen = false, unread = 0, lastChat = 0;
+function renderChat() {
+  $('chatTitle').textContent = t('chat');
+  $('chatIn').placeholder = t('chatPh');
+  $('chatSend').setAttribute('aria-label', t('send'));
+  $('chatList').innerHTML = chatMsgs.length
+    ? chatMsgs.map(m => `<div class="msg${m.by === myId ? ' mine' : ''}"><b>${esc(m.name)}</b><span>${esc(m.text)}</span></div>`).join('')
+    : `<p class="muted">${t('noMsgs')}</p>`;
+  $('chatList').scrollTop = $('chatList').scrollHeight;
+  const badge = $('chatBadge');
+  badge.hidden = !unread;
+  badge.textContent = unread > 9 ? '9+' : unread;
+  const lc = document.getElementById('lobbyChat');
+  if (lc) lc.textContent = `💬 ${t('chat')}${unread ? ` (${unread})` : ''}`;
+}
+function openChat() { chatOpen = true; unread = 0; $('chat').hidden = false; closePicker(); renderChat(); $('chatIn').focus(); }
+function closeChat() { chatOpen = false; $('chat').hidden = true; }
+function sendChat() {
+  const text = $('chatIn').value.trim().slice(0, 200);
+  if (!text || !code || Date.now() - lastChat < 700) return;
+  lastChat = Date.now();
+  const name = mySeat >= 0 && seats[mySeat] ? seats[mySeat].name : myName;
+  push(roomRef('chat'), { seat: mySeat, by: myId, name, text, t: Date.now() }).catch(() => {});
+  $('chatIn').value = '';
+}
+$('btnChat').onclick = ev => { ev.stopPropagation(); chatOpen ? closeChat() : openChat(); };
+$('chatClose').onclick = closeChat;
+$('chatSend').onclick = sendChat;
+$('chatIn').addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); sendChat(); } });
+
+function openPicker() {
+  const p = $('picker');
+  p.innerHTML = EMOJIS.map(e => `<button class="emo" data-r="${e}">${e}</button>`).join('') +
+    SIGNS.map(sg => `<button class="signbtn" data-r="${sg}">${sg}</button>`).join('');
+  p.hidden = false;
+  p.querySelectorAll('[data-r]').forEach(b => b.onclick = ev => { ev.stopPropagation(); sendReaction(b.dataset.r); });
+}
+function closePicker() { $('picker').hidden = true; }
+$('btnReact').onclick = ev => {
+  ev.stopPropagation();
+  if (!V) return;
+  $('picker').hidden ? openPicker() : closePicker();
+};
+document.addEventListener('click', ev => { if (!$('picker').hidden && !$('picker').contains(ev.target)) closePicker(); });
+
 function rulesHTML(n) {
   const thr = n === 3 ? 31 : 41;
-  const table = n === 4 ? '<li>Teams: players 1 and 3 against 2 and 4. Play goes clockwise.</li>'
-    : n === 3 ? '<li>Everyone plays alone. Play goes clockwise.</li>' : '<li>One against one.</li>';
-  const flow = n === 2
-    ? "<li>Your opponent beats your cards or puts the same number face down. If they beat, they then play new cards on you: any number, of one suit or one rank. The round ends when someone goes face down, and the player whose cards weren't beaten takes all the cards.</li>"
-    : '<li>Others beat with higher cards of the same suit or trumps, or put the same number face down. Once face down, you stay face down for that round.</li><li>When play comes back to the starter, everyone has played the same number of cards. The starter can beat again or end the round, and whoever is on top takes all the cards.</li>';
-  return `<ul>${table}
-    <li>Lead one card, or several of one suit, or several of one rank.</li>${flow}
-    <li>6♣ beats any card, but once played it's a normal 6♣.</li>
-    <li>Card ranks: 6 7 8 9 J Q K 10 A. Points: A 11, 10 10, K 4, Q 3, J 2.</li>
-    <li>${n === 3 ? 'Both players who lose get' : 'The losing side gets'} 2 (${thr}+ points), 4 (under ${thr}), 6 (no cards), 8 (cards but 0 points). A tie for the most points makes the next deal count more.</li>
-    <li>First trump an Ace or a 6: the deal counts double.</li>
-    <li>Equal match score (like 2-2 or 4-4): the next deal counts double. All doubling rules stack.</li>
-    <li>Over 24 match points loses. The match also ends early if someone has more than 12 while another side still has 0.</li></ul>`;
+  const items = [n === 4 ? 'r_team4' : n === 3 ? 'r_team3' : 'r_team2', 'r_lead'];
+  if (n === 2) items.push('r_flow2'); else items.push('r_flow', 'r_flow3');
+  items.push('r_six', 'r_rank');
+  const pen = `${t(n === 3 ? 'r_pen3' : 'r_pen')} ${t('r_pen2', { t: thr })}`;
+  return `<ul>${items.map(k => `<li>${esc(t(k))}</li>`).join('')}<li>${esc(pen)}</li>
+    <li>${esc(t('r_double'))}</li><li>${esc(t('r_equal'))}</li><li>${esc(t('r_end'))}</li></ul>`;
 }
 
 $('btnRules').onclick = () => {
   rulesOpen = true;
-  showOverlay(`<h2>Rules</h2>${rulesHTML(meta ? meta.n : 4)}<button id="closeRules">Back to game</button>`);
+  showOverlay(`<h2>${t('rules')}</h2>${rulesHTML(meta ? meta.n : 4)}<button id="closeRules">${t('back')}</button>`);
   $('closeRules').onclick = () => { rulesOpen = false; hideOverlay(); renderAll(); };
 };
+const soundLabel = () => { $('btnSound').textContent = soundOn ? t('soundOn') : t('soundOff'); };
+soundLabel();
+$('btnSound').onclick = () => {
+  soundOn = !soundOn; store.set('kozelSound', soundOn ? 'on' : 'off'); soundLabel();
+  if (soundOn) sfx('turn');
+};
 $('btnLeave').onclick = () => {
-  if (!confirm(isHost ? 'Leave? You are the host, so the game stops for everyone.' : 'Leave this game?')) return;
+  if (!confirm(isHost ? t('confirmHost') : t('confirmLeave'))) return;
   leaveRoom(); showHome();
 };
+
+// ---------- Language ----------
+let homeArgs = ['', ''];
+function applyStaticText() {
+  document.documentElement.lang = lang;
+  soundLabel();
+  $('btnLeave').textContent = t('leave');
+  $('btnRules').textContent = t('rules');
+  $('btnLang').textContent = LANGS[lang];
+  document.title = t('title');
+  if (!V) { $('btnPlay').textContent = t('play'); $('btnDown').textContent = t('down'); }
+  if (code) $('roomLabel').textContent = t('roomN', { c: code });
+  renderChat();
+}
+function setLang(l) {
+  lang = TEXT[l] ? l : 'kk';
+  store.set('kozelLang', lang);
+  applyStaticText();
+  if (code && meta) { rulesOpen = false; renderAll(); }
+  else showHome(...homeArgs);
+}
+$('btnLang').onclick = () => {
+  const keys = Object.keys(LANGS);
+  setLang(keys[(keys.indexOf(lang) + 1) % keys.length]);
+};
+lang = TEXT[store.get('kozelLang')] ? store.get('kozelLang') : 'kk';
+applyStaticText();
 
 // ---------- Start ----------
 const urlRoom = new URLSearchParams(location.search).get('room');
