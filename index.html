@@ -174,7 +174,7 @@
   #picker .signbtn { grid-column: 1 / -1; font: 700 15px Georgia, serif; color: var(--ink); background: var(--card);
     border: 3px solid var(--ink); border-radius: 6px; padding: 8px; transform: rotate(-2deg); margin-top: 4px; }
   #picker .signbtn:nth-of-type(even) { transform: rotate(1.5deg); }
-  .react { position: fixed; z-index: 30; pointer-events: none; font-size: 44px; line-height: 1;
+  .react { position: fixed; z-index: 4; pointer-events: none; font-size: 44px; line-height: 1;
     filter: drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
   .react.sign { font: 700 20px Georgia, serif; color: var(--ink); background: var(--card); border: 4px solid var(--ink);
     border-radius: 8px; padding: 10px 14px; white-space: nowrap; box-shadow: 0 0 0 3px var(--gold), 0 8px 20px rgba(0,0,0,.6);
@@ -328,6 +328,170 @@
   .tring.low { animation: ringpulse .5s ease-in-out infinite alternate; }
   @keyframes ringpulse { from { transform: scale(1); } to { transform: scale(1.15); } }
   @media (prefers-reduced-motion: reduce) { .tring.low { animation: none; } }
+
+  /* ===== Sizes per screen ===== */
+  :root { --cw-mid: 42px; --ch-mid: 60px; --cw-big: 52px; --ch-big: 76px; }
+  .card.mid { width: var(--cw-mid); height: var(--ch-mid); }
+  .card.big { width: var(--cw-big); height: var(--ch-big); }
+  @media (hover: hover) and (pointer: fine) {
+    #hand .card.big:not(.sel):hover { transform: translateY(-6px); }
+    button:not(:disabled), #hand .card { cursor: pointer; }
+  }
+
+  /* Tablets and computers: wider table, bigger cards, chat docked on the side */
+  @media (min-width: 820px) and (min-height: 620px) {
+    :root { --cw-mid: 56px; --ch-mid: 80px; --cw-big: 72px; --ch-big: 104px; }
+    /* everything fits in the window: the table takes the space that's left */
+    #app { max-width: 960px; height: 100vh; padding: 14px 28px 18px; gap: 10px; }
+    #table { flex: 1 1 auto; min-height: 0; margin: 26px 34px 16px; padding: 18px 24px 20px; border-radius: 230px / 170px;
+      display: flex; flex-direction: column; }
+    #table .mid { flex: 1; min-height: 0; }
+    .midcol { min-height: 0; }
+    #table::before { border-radius: 249px / 189px; }
+    .mid { grid-template-columns: 130px 1fr 130px; }
+    .seat { font-size: 15px; padding: 8px; }
+    .seat .name { max-width: 120px; font-size: 16px; }
+    .seat .tag { font-size: 12px; }
+    .backs { max-width: 110px; gap: 3px; }
+    #seatTop .backs { max-width: none; }
+    .back-mini { width: 14px; height: 20px; }
+    #center { min-height: 160px; max-height: none; }
+    #center::before { font-size: 54px; letter-spacing: 14px; }
+    #center::after { width: 280px; height: 190px; }
+    .card.mid { font-size: 21px; }
+    .card.mid .s { font-size: 24px; }
+    .card.big { font-size: 27px; }
+    .card.big .s { font-size: 31px; }
+    #hand { gap: 10px; min-height: 124px; }
+    #status { font-size: 16px; }
+    #status .note { font-size: 14px; }
+    #actions { max-width: 600px; width: 100%; margin: 0 auto; }
+    .score b { font-size: 34px; }
+    .score span { max-width: 160px; font-size: 13px; }
+    #trumpInfo b { font-size: 18px; }
+    #deckZone { min-height: 84px; transform: scale(1.25); margin: 8px 0; }
+    .tring { width: 36px; height: 36px; }
+    .seat .tring { top: -28px; margin-left: -18px; }
+    .tring.big { width: 42px; height: 42px; }
+    #chat { left: auto; right: 20px; top: 20px; bottom: auto; width: 340px; height: min(80vh, 620px); margin: 0; }
+    #picker { right: max(20px, calc(50% - 480px)); bottom: 110px; }
+    .react { font-size: 56px; }
+    .react.sign { font-size: 26px; }
+  }
+  /* Very wide screens: room for the chat next to the table */
+  @media (min-width: 1360px) and (min-height: 620px) {
+    #app { margin-left: max(20px, calc(50% - 480px - 190px)); }
+  }
+
+  /* Phones turned sideways: table on the left, your hand on the right */
+  @media (orientation: landscape) and (max-height: 520px) {
+    :root { --cw-mid: 36px; --ch-mid: 52px; --cw-big: 46px; --ch-big: 66px; }
+    #app { max-width: none; height: 100vh; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      grid-template-rows: auto auto 1fr auto auto auto; column-gap: 16px; row-gap: 6px; padding: 6px 12px; }
+    header, .subline { grid-column: 1 / -1; }
+    header { gap: 4px; }
+    .score b { font-size: 20px; }
+    #table { grid-column: 1; grid-row: 3 / 7; margin: 12px 14px; padding: 6px 6px 8px; min-height: 0; border-radius: 140px / 80px; }
+    #table::before { border-radius: 159px / 99px; }
+    #status, #meBar, #hand, #actions { grid-column: 2; }
+    #status { grid-row: 3; align-self: end; font-size: 13px; }
+    #status .note { display: none; }
+    #meBar { grid-row: 4; }
+    #hand { grid-row: 5; min-height: 74px; flex-wrap: wrap; gap: 4px; }
+    #actions { grid-row: 6; }
+    #actions button { padding: 9px; }
+    #center { min-height: 110px; }
+    #deckZone { min-height: 50px; transform: scale(.85); }
+    .seat { padding: 2px 4px; }
+    .back-mini { width: 8px; height: 12px; }
+    #chat { left: auto; right: 10px; top: 10px; bottom: 10px; width: 46%; height: auto; }
+  }
+
+  /* ===== Table layout v2: players around the rim, cards in the middle ===== */
+  #app { height: 100vh; height: 100dvh; }
+  #table { flex: 1 1 auto; min-height: 300px; display: block; padding: 0; }
+  #table > .seat { position: absolute; z-index: 3; }
+  #seatTop { top: 10px; left: 50%; transform: translateX(-50%); }
+  #seatLeft { left: 8px; top: 50%; transform: translateY(-50%); }
+  #seatRight { right: 8px; top: 50%; transform: translateY(-50%); }
+  #deckZone { position: absolute; left: 8%; top: 13%; min-height: 0; transform-origin: left top; z-index: 2; }
+  #multZone { position: absolute; right: 9%; top: 13%; z-index: 2; }
+  #center { position: absolute; left: 24%; right: 24%; top: 30%; bottom: 8%; min-height: 0; max-height: none; }
+
+  /* Player plate */
+  .seat, .seat.partner, .seat.turn { background: none; border: none; padding: 0; width: 84px;
+    display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center; }
+  .seat.turn::after { display: none; }
+  .ava { position: relative; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+    background: radial-gradient(circle at 35% 30%, #2a6f73, #0c3a3c); border: 2px solid var(--sky);
+    box-shadow: 0 3px 8px rgba(0,0,0,.45); margin-bottom: 2px; }
+  .seat.t0 .ava { border-color: var(--gold); }
+  .seat.turn .ava { border-color: transparent; box-shadow: 0 0 0 3px rgba(242,194,48,.35), 0 0 18px 4px rgba(242,194,48,.45); }
+  .ava .ini { font: 700 18px Georgia, serif; color: #eaf6f6; }
+  .ava .tring { position: absolute; inset: -4px; width: auto; height: auto; top: -4px; left: -4px; margin: 0; }
+  .ava .tring .secs { font-size: 14px; }
+  .dchip { position: absolute; right: -6px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--card); color: var(--ink); font: 700 10px/18px -apple-system, sans-serif; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+  .pname { font-weight: 700; font-size: 13px; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+  .seat.t0 .pname { color: var(--gold); }
+  .seat.t1 .pname { color: #bfeef7; }
+  .role { font-size: 10px; color: rgba(234,246,246,.65); line-height: 1.1; }
+  .seat .backs { display: flex; justify-content: center; max-width: none; gap: 0; margin-top: 3px; }
+  .seat .back-mini { width: 11px; height: 16px; margin-left: -4px; border-radius: 2px; }
+  .seat .back-mini:first-child { margin-left: 0; }
+  .seat .badges { display: flex; gap: 3px; margin-top: 2px; }
+  .seat .badges .down { font-size: 10px; color: var(--felt-dark); background: var(--muted); border-radius: 3px; padding: 0 4px; }
+  .seat .name, .seat .tag { display: none; }
+
+  /* Bigger screens */
+  @media (min-width: 820px) and (min-height: 620px) {
+    #table { margin: 30px 34px 16px; }
+    .seat, .seat.partner, .seat.turn { width: 130px; }
+    .ava { width: 58px; height: 58px; }
+    .ava .ini { font-size: 24px; }
+    .ava .tring .secs { font-size: 17px; }
+    .pname { font-size: 16px; max-width: 130px; }
+    .role { font-size: 12px; }
+    .seat .back-mini { width: 15px; height: 21px; margin-left: -5px; }
+    #seatTop { top: 16px; }
+    #seatLeft { left: 26px; } #seatRight { right: 26px; }
+    #deckZone { left: 14%; top: 12%; transform: scale(1.25); }
+    #multZone { right: 15%; top: 13%; }
+    #center { left: 22%; right: 22%; top: 30%; bottom: 8%; }
+  }
+  /* Phone sideways */
+  @media (orientation: landscape) and (max-height: 520px) {
+    #table { min-height: 0; }
+    .ava { width: 32px; height: 32px; }
+    .ava .ini { font-size: 14px; }
+    .pname { font-size: 11px; }
+    .role { display: none; }
+    #seatTop { top: 4px; }
+    #deckZone { left: 6%; top: 8%; transform: scale(.8); }
+    #multZone { right: 6%; top: 8%; transform: scale(.85); }
+    #center { left: 22%; right: 22%; top: 28%; bottom: 6%; }
+  }
+  #deckZone { flex-direction: column; gap: 2px; top: 21%; left: 7%; }
+  #deckZone .deckinfo { align-items: center; text-align: center; }
+  #deckZone .deckinfo b { font-size: 15px; }
+  #multZone { top: 21%; right: 8%; }
+  @media (min-width: 820px) and (min-height: 620px) { #deckZone { top: 20%; left: 12%; } #multZone { top: 22%; right: 13%; } }
+  @media (orientation: landscape) and (max-height: 520px) { #deckZone { top: 6%; left: 4%; } #multZone { top: 8%; right: 5%; } }
+  #deckZone .deckinfo .tl { display: none; }
+  #deckZone .deckinfo { flex-direction: row; gap: 4px; align-items: baseline; }
+  #deckZone { top: 19%; }
+  #seatLeft, #seatRight { top: 57%; }
+  @media (orientation: landscape) and (max-height: 520px) { #seatLeft, #seatRight { top: 55%; } }
+  @media (min-width: 820px) and (min-height: 620px) {
+    #deckZone { left: 21%; top: 16%; }
+    #multZone { right: 21%; top: 18%; }
+    #seatLeft, #seatRight { top: 52%; }
+    #center { left: 30%; right: 30%; top: 36%; bottom: 5%; }
+    .card.big { --cw-big: 64px; }
+  }
+  @media (min-width: 820px) and (min-height: 620px) { :root { --cw-big: 64px; --ch-big: 92px; } #hand { min-height: 108px; } }
 </style>
 </head>
 <body>
@@ -340,11 +504,11 @@
 
   <div id="table">
     <div class="seat" id="seatTop"></div>
-    <div class="mid">
-      <div class="seat" id="seatLeft"></div>
-      <div class="midcol"><div id="deckZone"></div><div id="center"></div></div>
-      <div class="seat" id="seatRight"></div>
-    </div>
+    <div class="seat" id="seatLeft"></div>
+    <div class="seat" id="seatRight"></div>
+    <div id="deckZone"></div>
+    <div id="multZone"></div>
+    <div id="center"></div>
   </div>
 
   <div id="status"></div>
@@ -1278,12 +1442,17 @@ const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch {
 function ghostOf(el, rect) {
   const g = el.cloneNode(true);
   g.classList.remove('sel');
+  // Keep the same layering as on the table: the cards that beat stay above face-down cards while flying
+  const grp = el.closest && el.closest('.grp');
+  const z = grp ? (parseInt(grp.style.zIndex, 10) || 0) : 200;
   Object.assign(g.style, { position: 'fixed', left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px',
-    height: rect.height + 'px', margin: 0, zIndex: 20, pointerEvents: 'none', visibility: 'visible' });
+    height: rect.height + 'px', margin: 0, zIndex: z, pointerEvents: 'none', visibility: 'visible' });
   fx().appendChild(g);
   return g;
 }
 const center = r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+// Card sizes come from the CSS, so phone, tablet and computer layouts can differ
+const cssPx = name => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
 // Flying cards live in their own layer: above the table, below pop-up windows (rules, results, chat).
 const fx = () => $('fx');
 // Every running card animation, with how to clean it up instantly.
@@ -1304,17 +1473,21 @@ function flyIn(el, fromRect, { delay = 0, flip = false, dur = 420 } = {}) {
   const to = el.getBoundingClientRect(), a = center(fromRect), b = center(to);
   const g = ghostOf(el, to);
   el.style.visibility = 'hidden';
+  el.dataset.flyingIn = '1';
   const anim = g.animate([
     { transform: `translate(${a.x - b.x}px, ${a.y - b.y}px) scale(.5)${flip ? ' rotateY(180deg)' : ''}`, opacity: 0.5 },
     { transform: 'none', opacity: 1 }],
     { duration: dur, delay, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
-  track(anim, () => { g.remove(); el.style.visibility = ''; });
+  // If the card is already leaving the table (round over), don't show it again when it lands
+  track(anim, () => { g.remove(); delete el.dataset.flyingIn; el.style.visibility = el.dataset.out ? 'hidden' : ''; });
 }
 function flyOut(el, toRect, { delay = 0, dur = 520 } = {}) {
   if (!canAnimate() || !toRect) return;
   const from = el.getBoundingClientRect(), a = center(from), b = center(toRect);
   const g = ghostOf(el, from);
   el.style.visibility = 'hidden';
+  el.dataset.out = '1';
+  if (el.dataset.flyingIn) g.style.opacity = 0;      // still arriving: its copy appears only when it starts leaving
   const anim = g.animate([
     { transform: 'none', opacity: 1 },
     { transform: `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(.35)`, opacity: 0 }],
@@ -1369,11 +1542,12 @@ function dealAnimation(x, order, freshDeal, p0) {
 }
 
 function revealAnimation(x, rv, delay) {
-  if (!canAnimate() || !rv || !rv.card) return;
+  if (!rv || !rv.card || document.hidden) return;
+  if (reduceMotion) return simpleReveal(rv, delay);
   const deckEl = $('deckStack');
   const deck = (deckEl || $('deckZone')).getBoundingClientRect();
   const table = $('table').getBoundingClientRect();
-  const W = 52, H = 76;
+  const W = cssPx('--cw-big') || 52, H = cssPx('--ch-big') || 76;
   const cx = table.left + table.width / 2, cy = table.top + table.height / 2;
   const make = (cls, html) => {
     const el = document.createElement('div');
@@ -1403,6 +1577,21 @@ function revealAnimation(x, rv, delay) {
   setTimeout(() => sfx('flip'), delay + 300);
   anim.onfinish = () => face.remove();
   anim.oncancel = () => face.remove();
+}
+
+// Phones with "Reduce Motion" turned on: the card just fades in and out in the middle
+function simpleReveal(rv, delay) {
+  const table = $('table').getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = `card big reveal${isRed(rv.card) ? ' red' : ''}`;
+  el.innerHTML = `<span>${RANKS[rv.card.r]}</span><span class="s">${rv.card.s}</span>`;
+  Object.assign(el.style, { position: 'fixed', left: table.left + table.width / 2 - (cssPx('--cw-big') || 52) / 2 + 'px',
+    top: table.top + table.height / 2 - (cssPx('--ch-big') || 76) / 2 + 'px',
+    width: (cssPx('--cw-big') || 52) + 'px', height: (cssPx('--ch-big') || 76) + 'px', opacity: 0 });
+  $('fxReveal').appendChild(el);
+  const a = el.animate([{ opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .8 }, { opacity: 0 }],
+    { duration: 1450, delay, fill: 'forwards' });
+  a.onfinish = a.oncancel = () => el.remove();
 }
 
 // ---------- Game screen ----------
@@ -1459,7 +1648,7 @@ function renderGame() {
   // Keep showing the old trump until the new card has been opened on screen
   const rv = g.reveal, p0 = prev;
   const freshDeal = p0 ? p0.dealNo !== g.dealNo : (g.deck.length === 36 - 6 * n && r.plays.length === 0);
-  if (!reduceMotion && rv && (freshDeal || (p0 && p0.revealId !== rv.id))) {
+  if (rv && (freshDeal || (p0 && p0.revealId !== rv.id))) {
     heldTrump = freshDeal ? { trump: null, mode: 'normal', doubled: false, faceUp: null, notes: [] }
                           : { trump: p0.trump, mode: p0.mode, doubled: p0.doubled, faceUp: p0.faceUp, notes: p0.notes };
   }
@@ -1488,12 +1677,16 @@ function renderGame() {
     const partner = n === 4 && rel === 2;
     const turn = r.cur === p && g.phase === 'play';
     el.className = `seat ${partner ? 't0 partner' : 't1'}${turn ? ' turn' : ''}`;
-    el.innerHTML = `<div class="name">${esc(names[p])}</div>
-      <div class="tag">${partner ? t('partner') : t('opponent')}${g.dealer === p ? ', ' + t('dealerTag') : ''}</div>
+    const initial = V.BOTS && V.BOTS[p] ? 'ABCD'[p] : (names[p] || '?').trim().charAt(0).toUpperCase();
+    const badges = [onTop(p) ? `<span class="ontop">${t('onTop')}</span>` : '',
+                    n > 2 && r.folded.includes(p) ? `<span class="down">${t('faceDown')}</span>` : ''].join('');
+    // Player plate: round avatar (timer ring around it on their turn), name, role, cards in hand
+    el.innerHTML = `<div class="ava">${turn ? timerHTML() : `<span class="ini">${esc(initial)}</span>`}
+        ${g.dealer === p ? `<span class="dchip" title="${t('dealer')}">D</span>` : ''}</div>
+      <div class="pname">${esc(names[p])}</div>
+      <div class="role">${partner ? t('partner') : t('opponent')}</div>
       <div class="backs">${'<div class="back-mini"></div>'.repeat(g.hands[p].length)}</div>
-      ${onTop(p) ? `<div class="ontop">${t('onTop')}</div>` : ''}
-      ${n > 2 && r.folded.includes(p) ? `<div class="down">${t('faceDown')}</div>` : ''}
-      ${turn ? timerHTML() : ''}`;
+      ${badges ? `<div class="badges">${badges}</div>` : ''}`;
   }
 
   // Deck in the middle, with the trump under it
@@ -1507,8 +1700,8 @@ function renderGame() {
       <div class="trumpslot${isRed({ s: d.trump }) ? ' red' : ''}${d.trump ? '' : ' unknown'}"><span>${suitTxt(d.trump)}</span></div>
       <div class="stack${left ? '' : ' empty'}" id="deckStack">${stack}</div>
     </div>
-    <div class="deckinfo"><b>${left}</b><span>${left ? t('inDeck') : t('deckEmpty')}</span><span class="tl">${t('trump', { s: suitTxt(d.trump) })}</span></div>` +
-    (mult > 1 ? `<div class="multbadge"><b>×${mult}</b><span>${[
+    <div class="deckinfo"><b>${left}</b><span>${left ? t('inDeck') : t('deckEmpty')}</span><span class="tl">${t('trump', { s: suitTxt(d.trump) })}</span></div>`;
+  $('multZone').innerHTML = (mult > 1 ? `<div class="multbadge"><b>×${mult}</b><span>${[
         g.mult > 1 ? (g.mult > 2 ? t('whyTies', { n: g.mult - 1 }) : t('whyTie')) : '',
         d.doubled ? (d.mode === 'ace' ? t('whyAce') : t('whySix')) : '',
         g.equalScores ? t('whyEqual') : ''].filter(Boolean).join(' + ')}</span></div>` : '');
@@ -1527,13 +1720,16 @@ function renderGame() {
       const pos = rel === 0 ? 0 : { Left: 1, Top: 2, Right: 3 }[SEATS[n][rel]];
       return DIR[pos];
     };
+    const CW = cssPx('--cw-mid') || 42;
+    const AW = Math.max(150, Math.min(c.clientWidth - 24, CW * 7));   // room for a spread of cards
     const jitter = (i, k) => { const v = Math.sin((r.id * 31 + i * 17 + k * 7) * 12.9898) * 43758.5453; return v - Math.floor(v) - 0.5; };
     c.innerHTML = `<div class="pile">${r.plays.map((pl, i) => {
       const [dx, dy] = dirOf(pl.p);
       // Face-down cards are pushed out toward the player, under everything else;
       // the cards to beat always stay on top in the middle.
       const isTop = i === topIdx;
-      const out = isTop ? 4 : pl.down ? 50 : 34;
+      const S = CW / 42;                                     // bigger cards on bigger screens
+      const out = (isTop ? 4 : pl.down ? 50 : 34) * S;
       const tx = dx * out + jitter(i, 1) * (isTop ? 6 : 14), ty = dy * out * 0.85 + jitter(i, 2) * (isTop ? 6 : 12);
       const rot = jitter(i, 3) * (isTop ? 6 : 18);
       const tag = i === last || isTop;
@@ -1541,7 +1737,7 @@ function renderGame() {
       const sc = isTop ? 1 : pl.down ? 0.78 : 0.86;
       // Spread several cards so each one is readable (they fit the table width)
       const k = pl.cs.length;
-      const ov = k > 1 ? Math.max(-22, Math.min(3, (190 - 42 * k) / (k - 1))) : 0;
+      const ov = k > 1 ? Math.max(-CW * 0.55, Math.min(3, (AW - CW * k) / (k - 1))) : 0;
       return `<div class="grp${isTop ? ' top' : ''}${pl.down ? ' fd' : ''}${k > 1 ? ' multi' : ''}" style="--ov:${ov.toFixed(1)}px;z-index:${z};transform:translate(-50%,-50%) translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) rotate(${rot.toFixed(1)}deg) scale(${sc})">
         ${pl.cs.map(cd => cardHTML(cd, d.trump, 'mid', pl.down)).join('')}
         ${tag ? `<span class="who">${pl.p === me ? t('youShort') : esc(names[pl.p])}</span>` : ''}</div>`;
@@ -1663,7 +1859,10 @@ function animateChanges(x, turnChanged) {
     sfx(mine ? 'win' : 'lose');
     if (r.holder === me) buzz([20, 40, 20]);
     const to = wEl.getBoundingClientRect();
-    $('center').querySelectorAll('.card').forEach((el, k) => flyOut(el, to, { delay: 450 + k * 20, dur: 400 }));
+    // All cards leave together, after the last played cards have landed
+    const lastIn = firstNew < r.plays.length ? 420 + (r.plays[r.plays.length - 1].cs.length - 1) * 60 : 0;
+    const start = Math.max(450, lastIn + 120);
+    $('center').querySelectorAll('.card').forEach((el, k) => flyOut(el, to, { delay: start + k * 12, dur: 420 }));
   }
 
   // Dealing: cards fly from the deck to each player, one at a time around the table
@@ -1690,7 +1889,7 @@ function animateChanges(x, turnChanged) {
     busyMs = doneAt;
     setTimeout(() => { heldTrump = null; if (V) renderGame(); }, doneAt);
   }
-  if (busyMs && !reduceMotion) {
+  if (busyMs) {
     busyUntil = performance.now() + busyMs;
     setTimeout(() => { if (V) renderHandArea(); }, busyMs + 30);
   }
@@ -1842,6 +2041,13 @@ $('btnLeave').onclick = () => {
   if (!confirm(isHost ? t('confirmHost') : t('confirmLeave'))) return;
   leaveRoom(); showHome();
 };
+
+// Window resized or phone rotated: redraw so everything lines up again
+let resizeT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { if (V && code) renderGame(); }, 200);
+});
 
 // Coming back to the app after switching away: drop half-finished animations and redraw.
 document.addEventListener('visibilitychange', () => {
