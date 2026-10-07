@@ -543,7 +543,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, set, get, update, push, remove, onValue, onChildAdded, runTransaction, query, limitToLast, onDisconnect, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js';
 
 // ===== LANGUAGES (Kazakh is the default) =====
 const LANGS = { kk: 'ҚАЗ', ru: 'РУС', en: 'ENG' };
@@ -1126,10 +1126,10 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 // App Check: blocks requests that don't come from this game (scripts, bots).
-// Paste your reCAPTCHA v3 site key here to turn it on (see the setup guide).
+// Paste your reCAPTCHA Enterprise (Fraud Defense) site key here to turn it on (see the setup guide).
 const APP_CHECK_SITE_KEY = '';
 if (APP_CHECK_SITE_KEY) {
-  initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
 }
 const db = getDatabase(app);
 const auth = getAuth(app);
