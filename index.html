@@ -493,18 +493,9 @@
   }
   @media (min-width: 820px) and (min-height: 620px) { :root { --cw-big: 64px; --ch-big: 92px; } #hand { min-height: 108px; } }
 
-  /* Voice chat */
-  #actions { grid-template-columns: 1fr 1fr 44px 44px 44px; }
-  #btnMic { background: transparent; border: 2px solid var(--muted); font-size: 20px; padding: 8px 0; position: relative; opacity: .75; }
-  #btnMic::after { content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 2px; background: #ff6b6b;
-    transform: translate(-50%, -50%) rotate(-45deg); border-radius: 2px; }
-  #btnMic.on { opacity: 1; border-color: var(--gold); background: rgba(242,194,48,.18); }
-  #btnMic.on::after { display: none; }
-  #btnMic[hidden] { display: none; }
-  .ava.speaking, #meBar.speaking { box-shadow: 0 0 0 3px #4ade80, 0 0 16px 4px rgba(74,222,128,.6) !important; }
-  #meBar.speaking { border-color: #4ade80; }
-  .vbadge { position: absolute; left: -7px; bottom: -5px; font-size: 13px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.7)); }
-  .seat .ava { cursor: pointer; }
+  /* Voice chat removed */
+  #actions { grid-template-columns: 1fr 1fr 48px 48px; }
+  .ava.speaking, #meBar.speaking { box-shadow: none; }
   #toast { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 50;
     background: rgba(4,30,31,.95); color: #eaf6f6; border: 1px solid var(--gold); border-radius: 12px; padding: 8px 14px;
     font-size: 14px; max-width: 90vw; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
@@ -536,7 +527,6 @@
     <button id="btnDown" disabled>Put face down</button>
     <button id="btnReact" aria-label="Send a reaction">😄</button>
     <button id="btnChat" aria-label="Chat">💬<span id="chatBadge" hidden></span></button>
-    <button id="btnMic" aria-label="Mic off">🎤</button>
   </div>
   <div id="picker" hidden></div>
   <div id="chat" hidden>
@@ -550,13 +540,16 @@
 <script type="module">
 // ===== ONLINE (Firebase rooms + screen) =====
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, set, get, update, push, remove, onValue, onChildAdded, runTransaction, query, limitToLast, onDisconnect }
+import { getDatabase, ref, set, get, update, push, remove, onValue, onChildAdded, runTransaction, query, limitToLast, onDisconnect, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js';
 
 // ===== LANGUAGES (Kazakh is the default) =====
 const LANGS = { kk: 'ҚАЗ', ru: 'РУС', en: 'ENG' };
 const TEXT = {
   kk: {
+    errBusy: 'Бөлме ашылмады. Бірнеше секундтан кейін қайталап көр.', errAuth: 'Серверге қосылу мүмкін болмады. Интернетті тексеріп, бетті жаңарт.', loading: 'Қосылуда…', leftGame: '{name} ойыннан шықты, оның орнына компьютер ойнайды.', backGame: '{name} ойынға қайта оралды.',
     micOn: 'Микрофон қосулы', micOff: 'Микрофон өшірулі', micDenied: 'Микрофонға рұқсат жоқ. Браузер баптауларынан рұқсат бер.', mutedP: '{name} дыбысы өшірілді', unmutedP: '{name} дыбысы қосылды',
     timeoutDown: '{name} үлгермеді: {n} кездейсоқ карта жабық тасталды.', timeoutMove: '{name} үлгермеді, жүріс өздігінен жасалды.',
     r_timer: 'Әр жүріске 30 секунд беріледі. Үлгермесең, керекті сандағы кездейсоқ карта жабық тасталады (жүріс бастау кезінде бір кездейсоқ картамен жүріледі).',
@@ -618,6 +611,7 @@ const TEXT = {
     r_end: '24-тен көп ұпай жинаған жеңіледі. Біреуде 12-ден көп, ал басқа жақта әлі 0 болса, ойын ертерек бітеді.',
   },
   ru: {
+    errBusy: 'Не получилось создать комнату. Попробуй через несколько секунд.', errAuth: 'Не удалось подключиться к серверу. Проверь интернет и обнови страницу.', loading: 'Подключение…', leftGame: '{name} вышел, вместо него играет компьютер.', backGame: '{name} вернулся в игру.',
     micOn: 'Микрофон включён', micOff: 'Микрофон выключен', micDenied: 'Нет доступа к микрофону. Разреши его в настройках браузера.', mutedP: '{name}: звук выключен', unmutedP: '{name}: звук включён',
     timeoutDown: '{name} не успел: скинуто случайных карт: {n}.', timeoutMove: '{name} не успел, ход сделан автоматически.',
     r_timer: 'На ход 30 секунд. Не успел, тогда скидывается нужное число случайных карт (а если ты начинаешь, делается ход случайной картой).',
@@ -679,6 +673,7 @@ const TEXT = {
     r_end: 'Кто набрал больше 24, проиграл. Игра заканчивается досрочно, если у кого-то больше 12, а у другой стороны всё ещё 0.',
   },
   en: {
+    errBusy: 'Could not create a room. Try again in a few seconds.', errAuth: 'Could not connect to the server. Check your internet and reload the page.', loading: 'Connecting…', leftGame: '{name} left, a computer plays for them.', backGame: '{name} is back in the game.',
     micOn: 'Mic on', micOff: 'Mic off', micDenied: 'Microphone access is blocked. Allow it in your browser settings.', mutedP: '{name} muted', unmutedP: '{name} unmuted',
     timeoutDown: '{name} ran out of time: {n} random cards put face down.', timeoutMove: '{name} ran out of time, so a move was made automatically.',
     r_timer: 'You have 30 seconds per turn. If time runs out, the needed number of random cards is put face down for you (or a random card is played if you are leading).',
@@ -744,193 +739,6 @@ let lang = 'kk';
 function t(key, params = {}) {
   const s = (TEXT[lang] && TEXT[lang][key]) ?? TEXT.en[key] ?? key;
   return s.replace(/\{(\w+)\}/g, (_, k) => (params[k] ?? ''));
-}
-
-// ===== VOICE CHAT (WebRTC, phone-to-phone) =====
-// Each player connects directly to every other player (max 3 connections).
-// Messages to set up a connection go through `send` (the Firebase room).
-// No relay (TURN) yet: on some mobile networks a direct connection can fail.
-const VOICE_ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-
-function createVoice({ myId, send, onChange = () => {} }) {
-  const peers = new Map();          // id -> { pc, tx, audio, stream, analyser, initiator, queue, tries }
-  const muted = new Set();          // players I chose not to hear
-  let desired = [];                 // who is in voice right now
-  let track = null;                 // my microphone
-  let micOn = false;
-  let ctx = null, localAnalyser = null;
-  let closed = false;
-
-  const audioCtx = () => {
-    if (!ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) ctx = new C(); }
-    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
-    return ctx;
-  };
-  // Phones only allow sound after a tap: retry playback on the next tap
-  const unlock = () => {
-    audioCtx();
-    for (const p of peers.values()) if (p.audio && p.audio.paused) p.audio.play().catch(() => {});
-  };
-  document.addEventListener('pointerdown', unlock);
-
-  function analyserFor(stream) {
-    const c = audioCtx();
-    if (!c) return null;
-    try {
-      const a = c.createAnalyser();
-      a.fftSize = 512;
-      c.createMediaStreamSource(stream).connect(a);
-      return a;
-    } catch { return null; }
-  }
-  function level(a) {
-    if (!a) return 0;
-    const buf = new Uint8Array(a.fftSize);
-    a.getByteTimeDomainData(buf);
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
-    return Math.sqrt(sum / buf.length);
-  }
-
-  function makePeer(id, initiator) {
-    const pc = new RTCPeerConnection({ iceServers: VOICE_ICE });
-    const p = { pc, tx: null, audio: null, stream: null, analyser: null, initiator, queue: [], tries: 0, remoteSet: false };
-    peers.set(id, p);
-    pc.onicecandidate = e => { if (e.candidate) send(id, { kind: 'ice', c: e.candidate.toJSON() }); };
-    pc.ontrack = e => {
-      const stream = e.streams[0] || new MediaStream([e.track]);
-      p.stream = stream;
-      if (!p.audio) {
-        p.audio = document.createElement('audio');
-        p.audio.autoplay = true;
-        p.audio.playsInline = true;
-        p.audio.style.display = 'none';
-        document.body.appendChild(p.audio);
-      }
-      p.audio.srcObject = stream;
-      p.audio.muted = muted.has(id);
-      p.audio.play().catch(() => {});
-      p.analyser = analyserFor(stream);
-      onChange();
-    };
-    pc.onconnectionstatechange = () => {
-      onChange();
-      if (pc.connectionState === 'failed') {
-        const tries = p.tries;
-        closePeer(id);
-        // The player with the smaller id calls again, a few times at most
-        if (initiator && tries < 3 && desired.includes(id) && !closed) {
-          setTimeout(() => { if (!peers.has(id) && desired.includes(id)) call(id, tries + 1); }, 2000);
-        }
-      }
-    };
-    return p;
-  }
-
-  async function call(id, tries = 0) {
-    const p = makePeer(id, true);
-    p.tries = tries;
-    p.tx = p.pc.addTransceiver('audio', { direction: 'sendrecv' });
-    if (track) await p.tx.sender.replaceTrack(track);
-    const offer = await p.pc.createOffer();
-    await p.pc.setLocalDescription(offer);
-    send(id, { kind: 'offer', sdp: offer.sdp });
-  }
-
-  async function flushIce(p) {
-    p.remoteSet = true;
-    for (const c of p.queue.splice(0)) { try { await p.pc.addIceCandidate(c); } catch {} }
-  }
-
-  async function handle(from, msg) {
-    if (closed || !msg || from === myId) return;
-    try {
-      if (msg.kind === 'offer') {
-        if (peers.has(from)) closePeer(from);            // they restarted: start fresh
-        const p = makePeer(from, false);
-        await p.pc.setRemoteDescription({ type: 'offer', sdp: msg.sdp });
-        p.tx = p.pc.getTransceivers()[0];
-        if (p.tx) {
-          p.tx.direction = 'sendrecv';
-          if (track) await p.tx.sender.replaceTrack(track);
-        }
-        const answer = await p.pc.createAnswer();
-        await p.pc.setLocalDescription(answer);
-        send(from, { kind: 'answer', sdp: answer.sdp });
-        await flushIce(p);
-      } else if (msg.kind === 'answer') {
-        const p = peers.get(from);
-        if (!p || p.pc.signalingState !== 'have-local-offer') return;
-        await p.pc.setRemoteDescription({ type: 'answer', sdp: msg.sdp });
-        await flushIce(p);
-      } else if (msg.kind === 'ice') {
-        const p = peers.get(from);
-        if (!p) return;
-        if (p.remoteSet) { try { await p.pc.addIceCandidate(msg.c); } catch {} }
-        else p.queue.push(msg.c);
-      } else if (msg.kind === 'bye') {
-        closePeer(from);
-      }
-    } catch (e) {
-      console.warn('voice', e);
-    }
-  }
-
-  function closePeer(id) {
-    const p = peers.get(id);
-    if (!p) return;
-    peers.delete(id);
-    try { p.pc.close(); } catch {}
-    if (p.audio) { p.audio.srcObject = null; p.audio.remove(); }
-    onChange();
-  }
-
-  return {
-    // Who is in the room's voice right now. The smaller id makes the call, so it happens once.
-    setPeers(ids) {
-      desired = ids.filter(id => id !== myId);
-      for (const id of desired) if (!peers.has(id) && myId < id) call(id).catch(e => console.warn('voice', e));
-      for (const id of [...peers.keys()]) if (!desired.includes(id)) closePeer(id);
-    },
-    handle,
-    async setMic(on) {
-      if (on && !track) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-        track = stream.getAudioTracks()[0];
-        localAnalyser = analyserFor(stream);
-        for (const p of peers.values()) if (p.tx) await p.tx.sender.replaceTrack(track).catch(() => {});
-      }
-      micOn = !!on;
-      if (track) track.enabled = micOn;
-      onChange();
-      return micOn;
-    },
-    get micOn() { return micOn; },
-    setMuted(id, on) {
-      on ? muted.add(id) : muted.delete(id);
-      const p = peers.get(id);
-      if (p && p.audio) p.audio.muted = on;
-      onChange();
-    },
-    isMuted: id => muted.has(id),
-    // How loud each player is right now (0..1), for the "speaking" glow
-    levels() {
-      const out = {};
-      for (const [id, p] of peers) out[id] = muted.has(id) ? 0 : level(p.analyser);
-      out[myId] = micOn ? level(localAnalyser) : 0;
-      return out;
-    },
-    connectedTo: id => peers.get(id)?.pc.connectionState === 'connected',
-    close() {
-      closed = true;
-      for (const id of [...peers.keys()]) { send(id, { kind: 'bye' }); closePeer(id); }
-      if (track) track.stop();
-      track = null; micOn = false;
-      document.removeEventListener('pointerdown', unlock);
-      if (ctx) ctx.close().catch(() => {});
-    },
-  };
 }
 
 // ===== RULES (shared) =====
@@ -1316,15 +1124,29 @@ const firebaseConfig = {
   messagingSenderId: '242408901356',
   appId: '1:242408901356:web:6319985f700e8de1a133c9',
 };
-const db = getDatabase(initializeApp(firebaseConfig));
+const app = initializeApp(firebaseConfig);
+// App Check: blocks requests that don't come from this game (scripts, bots).
+// Paste your reCAPTCHA v3 site key here to turn it on (see the setup guide).
+const APP_CHECK_SITE_KEY = '';
+if (APP_CHECK_SITE_KEY) {
+  initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+}
+const db = getDatabase(app);
+const auth = getAuth(app);
 
 // ---------- Who am I ----------
 const store = {
   get: k => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
 };
-let myId = store.get('kozelId');
-if (!myId) { myId = Math.random().toString(36).slice(2, 10); store.set('kozelId', myId); }
+// Every player signs in anonymously; Firebase gives a private id that stays the same on this device.
+// The security rules use it to check who is allowed to do what.
+let myId = null;
+async function signIn() {
+  if (auth.authStateReady) await auth.authStateReady();
+  if (!auth.currentUser) await signInAnonymously(auth);
+  myId = auth.currentUser.uid;
+}
 let myName = store.get('kozelName') || '';
 
 // ---------- Room state on this phone ----------
@@ -1376,38 +1198,47 @@ function showHome(prefillCode = '', error = '') {
   };
 }
 
+const isDenied = e => /PERMISSION_DENIED|permission/i.test(String(e && (e.code || e.message)));
+
 async function createRoom(n) {
-  let c;
-  for (let i = 0; i < 10; i++) {
-    c = String(1000 + Math.floor(Math.random() * 9000));
-    if (!(await get(ref(db, `rooms/${c}`))).exists()) break;
+  for (let i = 0; i < 6; i++) {
+    const c = String(1000 + Math.floor(Math.random() * 9000));
+    try {
+      // One write: the rules check the code is free and that this player isn't creating rooms too fast
+      await update(ref(db), {
+        [`users/${myId}/lastRoom`]: serverTimestamp(),
+        [`rooms/${c}/meta`]: { host: myId, n, status: 'lobby', created: serverTimestamp(), active: serverTimestamp() },
+        [`rooms/${c}/seats/0`]: { id: myId, name: myName },
+        [`rooms/${c}/members/${myId}`]: true,
+      });
+      return enterRoom(c);
+    } catch (e) {
+      if (!isDenied(e)) throw e;
+      await new Promise(r => setTimeout(r, 1500));      // code taken or too fast: wait, try another code
+    }
   }
-  await set(ref(db, `rooms/${c}`), {
-    meta: { host: myId, n, status: 'lobby', created: Date.now() },
-    seats: { 0: { id: myId, name: myName } },
-  });
-  enterRoom(c);
+  throw new Error(t('errBusy'));
 }
 
 async function joinRoom(c) {
-  const snap = await get(ref(db, `rooms/${c}`));
-  if (!snap.exists()) return showHome(c, t('errNotFound'));
-  const room = snap.val();
-  const list = seatList(room.seats, room.meta.n);
-  if (list.some(s => s && s.id === myId)) return enterRoom(c);       // rejoining
-  if (room.meta.status !== 'lobby') return showHome(c, t('errStarted'));
-  let joined = false;
-  await runTransaction(ref(db, `rooms/${c}/seats`), cur => {
-    if (cur === null) return null;
-    const arr = seatList(cur, room.meta.n);
-    const free = arr.findIndex(s => !s);
-    if (free < 0) { joined = false; return; }       // full: abort
-    cur[free] = { id: myId, name: myName };
-    joined = true;
-    return cur;
-  });
-  if (!joined) return showHome(c, t('errFull'));
-  enterRoom(c);
+  const mSnap = await get(ref(db, `rooms/${c}/meta`));
+  if (!mSnap.exists()) return showHome(c, t('errNotFound'));
+  const m = mSnap.val();
+  const list = seatList((await get(ref(db, `rooms/${c}/seats`))).val(), m.n);
+  if (list.some(s => s && s.id === myId)) {                     // coming back to my seat
+    await set(ref(db, `rooms/${c}/members/${myId}`), true).catch(() => {});
+    return enterRoom(c);
+  }
+  if (m.status !== 'lobby') return showHome(c, t('errStarted'));
+  await set(ref(db, `rooms/${c}/members/${myId}`), true);
+  for (let i = 0; i < m.n; i++) {
+    if (list[i]) continue;
+    const res = await runTransaction(ref(db, `rooms/${c}/seats/${i}`),
+      cur => (cur === null ? { id: myId, name: myName } : undefined)).catch(() => null);
+    if (res && res.committed) return enterRoom(c);
+  }
+  await remove(ref(db, `rooms/${c}/members/${myId}`)).catch(() => {});
+  showHome(c, t('errFull'));
 }
 
 function seatList(raw, n) {
@@ -1418,12 +1249,25 @@ function seatList(raw, n) {
 function enterRoom(c) {
   leaveListeners();
   code = c; engineReady = false; V = null; lastKey = ''; prev = null; heldTrump = null;
+  presence = {}; lastRaw = null; hostMissingSince = 0;
+  for (const k in lastSeen) delete lastSeen[k];
+  // I'm here. Firebase removes this by itself if my phone disconnects or the page closes.
+  const presRef = roomRef(`presence/${myId}`);
+  const markHere = () => { set(presRef, true).catch(() => {}); try { onDisconnect(presRef).remove(); } catch {} };
+  unsubs.push(onValue(ref(db, '.info/connected'), s => { if (s.val() === true) markHere(); }));
+  markHere();
+  unsubs.push(onValue(roomRef('presence'), s => { presence = s.val() || {}; }));
+  clearInterval(roomTimer);
+  roomTimer = setInterval(roomTick, 2000);
   history.replaceState(null, '', `?room=${c}`);
   $('roomLabel').textContent = t('roomN', { c });
   unsubs.push(onValue(roomRef('meta'), s => {
     meta = s.val();
     if (!meta) { leaveRoom(); return showHome('', t('errClosed')); }
+    const wasHost = isHost;
     isHost = meta.host === myId;
+    if (isHost && !engineReady && lastRaw) { restoreEngine(JSON.parse(lastRaw)); startHosting(); }   // I took over
+    if (wasHost && !isHost) stopHosting();
     renderAll();
   }));
   unsubs.push(onValue(roomRef('seats'), s => {
@@ -1449,9 +1293,9 @@ function enterRoom(c) {
     const m = s.val();
     if (m && m.t > enteredAt - 3000) showReaction(m.seat, m.r);
   }));
-  startVoice(enteredAt);
   unsubs.push(onValue(roomRef('game'), s => {
     const raw = s.val();
+    lastRaw = raw;
     V = raw ? JSON.parse(raw) : null;
     pending = false;
     if (V && isHost && !engineReady) { restoreEngine(JSON.parse(raw)); startHosting(); }
@@ -1463,7 +1307,8 @@ function enterRoom(c) {
 
 function leaveListeners() { unsubs.forEach(u => u()); unsubs = []; }
 function leaveRoom() {
-  stopVoice();
+  clearInterval(roomTimer);
+  stopHosting();
   leaveListeners();
   closeChat(); chatMsgs = []; unread = 0;
   stopAnimations(); $('fxReveal').replaceChildren();
@@ -1474,13 +1319,89 @@ function leaveRoom() {
 // Host: connect the engine to Firebase and listen for players' moves.
 function startHosting() {
   engineReady = true;
-  publish = () => set(roomRef('game'), JSON.stringify({ N, NAMES, BOTS, G, R }));
-  unsubs.push(onChildAdded(roomRef('moves'), snap => {
+  publish = () => set(roomRef('game'), JSON.stringify({ N, NAMES, BOTS, G, R })).catch(() => {});
+  if (movesUnsub) movesUnsub();
+  movesUnsub = onChildAdded(roomRef('moves'), snap => {
     const m = snap.val();
-    remove(snap.ref);
-    const owner = seats[m.seat];
+    remove(snap.ref).catch(() => {});
+    const owner = m && seats[m.seat];
     if (owner && owner.id === m.by) applyMove(m);
-  }));
+  });
+}
+// Someone else is the host now: stop running the game on this phone
+function stopHosting() {
+  if (!engineReady) return;
+  engineReady = false;
+  publish = () => {};
+  clearTimeout(botTimer); clearTimeout(turnTimer); turnToken++;
+  if (movesUnsub) { movesUnsub(); movesUnsub = null; }
+}
+
+// ---------- Who is still here ----------
+let presence = {}, lastRaw = null, roomTimer = null, movesUnsub = null, hostMissingSince = 0, lastActive = 0;
+const lastSeen = {};
+const AWAY_MS = 10000, HOST_GONE_MS = 12000;
+
+function roomTick() {
+  if (!code || !meta || !myId) return;
+  const now = Date.now();
+  if (isHost) {
+    // Tell the cleanup job this room is still in use
+    if (now - lastActive > 60000) { lastActive = now; update(roomRef('meta'), { active: serverTimestamp() }).catch(() => {}); }
+    seats.forEach((s, p) => {
+      if (!s || !s.id || s.id === myId) return;
+      if (presence[s.id]) lastSeen[s.id] = now; else if (!lastSeen[s.id]) lastSeen[s.id] = now;
+      const gone = !presence[s.id] && (s.away || now - lastSeen[s.id] > AWAY_MS);
+      if (meta.status === 'lobby') {
+        // Left the lobby: free the seat
+        if (gone) { remove(roomRef(`seats/${p}`)).catch(() => {}); remove(roomRef(`members/${s.id}`)).catch(() => {}); }
+      } else if (engineReady && G && BOTS) {
+        // Left during the game: a computer takes the seat; back again: they get it back
+        if (gone && !BOTS[p]) setAway(p, true);
+        else if (presence[s.id] && BOTS[p] && s.away) setAway(p, false);
+      }
+    });
+  } else {
+    // The host is gone: the first player still here takes over the game
+    if (presence[meta.host]) hostMissingSince = 0;
+    else if (!hostMissingSince) hostMissingSince = now;
+    else if (now - hostMissingSince > HOST_GONE_MS) {
+      const here = seats.filter(s => s && s.id && presence[s.id]).map(s => s.id);
+      if (here[0] === myId) {
+        hostMissingSince = now;
+        runTransaction(roomRef('meta/host'), cur => (cur && cur !== myId && !presence[cur] ? myId : undefined)).catch(() => {});
+      }
+    }
+  }
+}
+
+function setAway(p, away) {
+  BOTS[p] = away;
+  update(roomRef(`seats/${p}`), { away }).catch(() => {});
+  G.notes = [...(G.notes || []), { k: away ? 'leftGame' : 'backGame', p, nm: NAMES[p] }];
+  step();
+}
+
+// Leaving on purpose (the Leave button)
+async function leaveForGood() {
+  if (code && meta && myId) {
+    try {
+      if (isHost) {
+        const next = seats.find(s => s && s.id && s.id !== myId && presence[s.id]);
+        if (next) await update(roomRef('meta'), { host: next.id });
+      }
+      if (meta.status === 'lobby' && mySeat >= 0) {
+        await remove(roomRef(`seats/${mySeat}`));
+        await remove(roomRef(`members/${myId}`));
+      } else if (mySeat >= 0) {
+        await update(roomRef(`seats/${mySeat}`), { away: true });
+      }
+      try { await onDisconnect(roomRef(`presence/${myId}`)).cancel(); } catch {}
+      await remove(roomRef(`presence/${myId}`));
+    } catch {}
+  }
+  leaveRoom();
+  showHome();
 }
 
 async function hostStartGame() {
@@ -1500,6 +1421,15 @@ async function hostStartGame() {
   newMatch(n, names, bots);
 }
 
+// Write a message and my "last write" time together; the rules reject writes that come too fast
+function writeLimited(path, value, kind) {
+  const k = push(roomRef(path)).key;
+  return update(ref(db), {
+    [`rooms/${code}/${path}/${k}`]: value,
+    [`rooms/${code}/rate/${myId}/${kind}`]: serverTimestamp(),
+  }).then(() => k);
+}
+
 function sendMove(type) {
   if (pending) return;
   pending = true;
@@ -1509,7 +1439,7 @@ function sendMove(type) {
   V.G.hands[mySeat] = before.filter(c => !sel.has(c.id));
   if (prev) ids.forEach(id => prev.hand.delete(id));
   const sentFor = V;
-  push(roomRef('moves'), { seat: mySeat, by: myId, type, cards: ids })
+  writeLimited('moves', { seat: mySeat, by: myId, type, cards: ids }, 'move')
     .catch(() => { pending = false; });
   // If the host never answers (move refused), put the cards back.
   setTimeout(() => { if (pending && V === sentFor) { V.G.hands[mySeat] = before; pending = false; renderHandArea(); } }, 4000);
@@ -1556,7 +1486,7 @@ function renderLobby() {
     } catch { $('linkIn').select(); }
   };
   if ($('startBtn')) $('startBtn').onclick = () => { $('startBtn').disabled = true; hostStartGame(); };
-  $('leaveBtn').onclick = () => { leaveRoom(); showHome(); };
+  $('leaveBtn').onclick = () => leaveForGood();
 }
 
 function renderResult() {
@@ -1588,13 +1518,13 @@ function renderResult() {
     $('goBtn').disabled = true;
     if (V.G.phase === 'dealEnd') startDeal(); else newMatch(N, NAMES, BOTS);
   };
-  if ($('leaveBtn')) $('leaveBtn').onclick = () => { leaveRoom(); showHome(); };
+  if ($('leaveBtn')) $('leaveBtn').onclick = () => leaveForGood();
 }
 
 // One message from the game, in this phone's language
 function noteText(m, names) {
   if (!m) return '';
-  return t(m.k, { name: names[m.p] ?? '', card: m.card, suit: m.suit, score: m.score, n: m.n });
+  return t(m.k, { name: m.nm ?? names[m.p] ?? '', card: m.card, suit: m.suit, score: m.score, n: m.n });
 }
 
 const SEATS = { 2: { 1: 'Top' }, 3: { 1: 'Left', 2: 'Right' }, 4: { 1: 'Left', 2: 'Top', 3: 'Right' } };
@@ -1972,7 +1902,6 @@ function renderGame() {
 
   renderHandArea();
   animateChanges(x, turnChanged);
-  applyVoiceUI();
   if (turnChanged) {
     // The clock starts once the dealing animation is over
     turnStart = Math.max(performance.now(), busyUntil);
@@ -2120,8 +2049,9 @@ function sendReaction(r) {
   if (now - lastReact < 1500 || !code || mySeat < 0) return;    // small cooldown against spam
   lastReact = now;
   closePicker();
-  push(roomRef('reactions'), { seat: mySeat, by: myId, r, t: now })
-    .then(ref => setTimeout(() => remove(ref), 15000)).catch(() => {});
+  writeLimited('reactions', { seat: mySeat, by: myId, r, t: now }, 'react')
+    .then(k => { const c0 = code; setTimeout(() => remove(ref(db, `rooms/${c0}/reactions/${k}`)).catch(() => {}), 15000); })
+    .catch(() => {});
 }
 
 function showReaction(seat, r) {
@@ -2190,10 +2120,10 @@ function openChat() { chatOpen = true; unread = 0; $('chat').hidden = false; clo
 function closeChat() { chatOpen = false; $('chat').hidden = true; }
 function sendChat() {
   const text = $('chatIn').value.trim().slice(0, 200);
-  if (!text || !code || Date.now() - lastChat < 700) return;
+  if (!text || !code || Date.now() - lastChat < 1100) return;
   lastChat = Date.now();
   const name = mySeat >= 0 && seats[mySeat] ? seats[mySeat].name : myName;
-  push(roomRef('chat'), { seat: mySeat, by: myId, name, text, t: Date.now() }).catch(() => {});
+  writeLimited('chat', { seat: mySeat, by: myId, name: String(name).slice(0, 24), text, t: Date.now() }, 'chat').catch(() => {});
   $('chatIn').value = '';
 }
 $('btnChat').onclick = ev => { ev.stopPropagation(); chatOpen ? closeChat() : openChat(); };
@@ -2249,8 +2179,8 @@ $('btnSound').onclick = () => {
   if (soundOn) sfx('turn');
 };
 $('btnLeave').onclick = () => {
-  if (!confirm(isHost ? t('confirmHost') : t('confirmLeave'))) return;
-  leaveRoom(); showHome();
+  if (!confirm(t('confirmLeave'))) return;
+  leaveForGood();
 };
 
 // Window resized or phone rotated: redraw so everything lines up again
@@ -2262,7 +2192,6 @@ window.addEventListener('resize', () => {
 
 // Coming back to the app after switching away: drop half-finished animations and redraw.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && voice && voice.micOn) setMic(false);
   if (document.hidden || !V) return;
   stopAnimations();
   $('fxReveal').replaceChildren();
@@ -2270,124 +2199,6 @@ document.addEventListener('visibilitychange', () => {
   busyUntil = 0;
   renderAll();
 });
-
-// ---------- Voice chat ----------
-let voice = null, voiceMap = {}, voiceTimer = null;
-const supportsVoice = () => !!(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-
-function startVoice(enteredAt) {
-  stopVoice();
-  if (!supportsVoice()) { $('btnMic').hidden = true; return; }
-  $('btnMic').hidden = false;
-  voice = createVoice({
-    myId,
-    send: (to, msg) => push(roomRef(`rtc/${to}`), { from: myId, t: Date.now(), ...msg }).catch(() => {}),
-    onChange: () => applyVoiceUI(),
-  });
-  // I'm in this room's voice (removed automatically if I lose connection)
-  const me = roomRef(`voice/${myId}`);
-  set(me, { mic: false, t: Date.now() }).catch(() => {});
-  try { onDisconnect(me).remove(); } catch {}
-  unsubs.push(onValue(roomRef('voice'), s => {
-    voiceMap = s.val() || {};
-    if (voice) voice.setPeers(Object.keys(voiceMap));
-    applyVoiceUI();
-  }));
-  // Connection messages sent to me
-  unsubs.push(onChildAdded(roomRef(`rtc/${myId}`), s => {
-    const m = s.val();
-    remove(s.ref).catch(() => {});
-    if (m && m.t > enteredAt - 30000 && voice) voice.handle(m.from, m);
-  }));
-  // "Speaking" glow, updated a few times per second
-  voiceTimer = setInterval(() => {
-    if (!voice) return;
-    const lv = voice.levels();
-    for (const [id, v] of Object.entries(lv)) {
-      const el = voiceSeatEl(id);
-      if (el) el.classList.toggle('speaking', v > 0.015);
-    }
-  }, 150);
-  applyVoiceUI();
-}
-
-function stopVoice() {
-  clearInterval(voiceTimer);
-  if (voice) {
-    voice.close();
-    if (code) remove(roomRef(`voice/${myId}`)).catch(() => {});
-  }
-  voice = null; voiceMap = {};
-  applyVoiceUI();
-}
-
-// Which element shows a player: their seat on the table, or my name bar
-function seatOfId(id) { return seats.findIndex(s => s && s.id === id); }
-function voiceSeatEl(id) {
-  if (!V) return null;
-  const p = seatOfId(id);
-  if (p < 0) return null;
-  const el = ctx().seatEl(p);
-  return p === mySeat ? el : el && el.querySelector('.ava');
-}
-
-async function setMic(on) {
-  if (!voice) return;
-  try {
-    await voice.setMic(on);
-  } catch {
-    toast(t('micDenied'));
-    return;
-  }
-  update(roomRef(`voice/${myId}`), { mic: voice.micOn, t: Date.now() }).catch(() => {});
-  buzz(15);
-  applyVoiceUI();
-}
-
-// Mic icons on seats, my mic button, and who I've muted
-function applyVoiceUI() {
-  const btn = $('btnMic');
-  if (btn) {
-    const on = !!(voice && voice.micOn);
-    btn.classList.toggle('on', on);
-    btn.setAttribute('aria-label', on ? t('micOn') : t('micOff'));
-    btn.title = on ? t('micOn') : t('micOff');
-  }
-  if (!V) return;
-  const x = ctx();
-  for (let p = 0; p < x.n; p++) {
-    if (p === mySeat) continue;
-    const el = x.seatEl(p);
-    if (!el) continue;
-    const id = seats[p] && seats[p].id;
-    const v = id && voiceMap[id];
-    let badge = el.querySelector('.vbadge');
-    const muted = !!(id && voice && voice.isMuted(id));
-    const icon = !v ? '' : muted ? '🔇' : v.mic ? '🎤' : '';
-    if (!icon) { if (badge) badge.remove(); continue; }
-    if (!badge) { badge = document.createElement('span'); badge.className = 'vbadge'; el.querySelector('.ava')?.appendChild(badge); }
-    badge.textContent = icon;
-  }
-}
-
-// Tap a player's avatar to stop or start hearing them
-document.addEventListener('click', ev => {
-  const ava = ev.target.closest && ev.target.closest('.seat .ava');
-  if (!ava || !voice || !V) return;
-  const seatEl = ava.closest('.seat');
-  const x = ctx();
-  for (let p = 0; p < x.n; p++) {
-    if (p !== mySeat && x.seatEl(p) === seatEl) {
-      const id = seats[p] && seats[p].id;
-      if (!id || !voiceMap[id]) return;
-      const now = !voice.isMuted(id);
-      voice.setMuted(id, now);
-      toast(t(now ? 'mutedP' : 'unmutedP', { name: x.names[p] }));
-    }
-  }
-});
-
-$('btnMic').onclick = ev => { ev.stopPropagation(); if (voice) setMic(!voice.micOn); };
 
 // Small message at the top of the screen
 let toastT = null;
@@ -2428,8 +2239,11 @@ applyStaticText();
 
 // ---------- Start ----------
 const urlRoom = new URLSearchParams(location.search).get('room');
-if (urlRoom && myName) joinRoom(urlRoom).catch(e => showHome(urlRoom, 'Could not join: ' + e.message));
-else showHome(urlRoom || '');
+showOverlay(`<h2>${t('title')}</h2><p class="muted">${t('loading')}</p>`);
+signIn().then(() => {
+  if (urlRoom && myName) joinRoom(urlRoom).catch(e => showHome(urlRoom, t('errJoin') + e.message));
+  else showHome(urlRoom || '');
+}).catch(() => showOverlay(`<h2>${t('title')}</h2><p class="err">${t('errAuth')}</p>`));
 
 </script>
 </body>
