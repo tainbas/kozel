@@ -1,0 +1,13 @@
+{
+  "name": "kozel-backend",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test scripts/*.test.mjs",
+    "cleanup": "node scripts/cleanup-rooms.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}
