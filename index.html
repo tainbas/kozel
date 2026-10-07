@@ -1127,7 +1127,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // App Check: blocks requests that don't come from this game (scripts, bots).
 // Paste your reCAPTCHA Enterprise (Fraud Defense) site key here to turn it on (see the setup guide).
-const APP_CHECK_SITE_KEY = '';
+const APP_CHECK_SITE_KEY = '6LfqreMtAAAAAMnqYNlJhuKlsUx5I0RYBYtep1Wv';
 if (APP_CHECK_SITE_KEY) {
   initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
 }
